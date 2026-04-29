@@ -1,0 +1,180 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { X } from 'lucide-react';
+import { useTVSeries } from '../../utils/TVSeriesContext';
+
+const genres = ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Horror', 'Thriller', 'Romance', 'Animation', 'Documentary', 'Fantasy'];
+
+export default function EditTVSeriesModal({ isOpen, onClose, series }) {
+  const { updateSeries } = useTVSeries();
+  const [formData, setFormData] = useState({
+    title: series?.title || '',
+    rating: series?.rating || '',
+    genre: series?.genre || '',
+    date_watched: series?.date_watched || '',
+    notes: series?.notes || '',
+    num_seasons: series?.num_seasons || '',
+    total_episodes: series?.total_episodes || '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (series) {
+      setFormData({
+        title: series.title || '',
+        rating: series.rating || '',
+        genre: series.genre || '',
+        date_watched: series.date_watched || '',
+        notes: series.notes || '',
+        num_seasons: series.num_seasons || '',
+        total_episodes: series.total_episodes || '',
+      });
+    }
+  }, [series]);
+
+  if (!isOpen || !series) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await updateSeries(series.id, {
+        ...formData,
+        rating: parseFloat(formData.rating),
+        num_seasons: formData.num_seasons ? parseInt(formData.num_seasons) : null,
+        total_episodes: formData.total_episodes ? parseInt(formData.total_episodes) : null,
+      });
+      onClose();
+    } catch (err) {
+      alert('Failed to update TV series: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="glass rounded-2xl p-6 w-full max-w-md neon-border-magenta"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold neon-text-magenta">Edit TV Series</h2>
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Series Name *</label>
+            <input
+              type="text"
+              required
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass"
+              placeholder="Enter series name"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white/80">Seasons</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.num_seasons}
+                onChange={(e) => setFormData({ ...formData, num_seasons: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg glass"
+                placeholder="#"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white/80">Episodes</label>
+              <input
+                type="number"
+                min="1"
+                value={formData.total_episodes}
+                onChange={(e) => setFormData({ ...formData, total_episodes: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg glass"
+                placeholder="#"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Rating (1-10) *</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              step="0.01"
+              required
+              value={formData.rating}
+              onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass"
+              placeholder="Enter rating"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Genre</label>
+            <select
+              value={formData.genre}
+              onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass"
+            >
+              <option value="">Select genre</option>
+              {genres.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Date Watched</label>
+            <input
+              type="date"
+              value={formData.date_watched}
+              onChange={(e) => setFormData({ ...formData, date_watched: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass min-h-[100px]"
+              placeholder="Add your thoughts about different seasons..."
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 px-6 rounded-lg bg-neon-magenta/20 border border-neon-magenta/50 text-neon-magenta font-semibold hover:bg-neon-magenta/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed neon-text-magenta"
+          >
+            {isSubmitting ? 'Updating...' : 'Update TV Series'}
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
