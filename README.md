@@ -1,4 +1,4 @@
-# 🎬 Movie Dashboard
+# 🎬 Cine-Metric
 
 A personal movie tracking dashboard with a futuristic dark theme, built with React, Node.js, and SQLite.
 
@@ -50,8 +50,14 @@ A personal movie tracking dashboard with a futuristic dark theme, built with Rea
 
 The easiest way to run both servers is to use the provided start script:
 
+**Linux/macOS:**
 ```bash
 ./start.sh
+```
+
+**Windows:**
+```batch
+start.bat
 ```
 
 This will start both the backend and frontend servers in the background and keep them running.
@@ -76,13 +82,6 @@ npm run dev
 
 The frontend will start on `http://localhost:5173`
 
-#### Option 3: Run with single command (Linux/Mac)
-
-```bash
-cd backend && node server.js &
-cd frontend && npm run dev
-```
-
 ### Access the Dashboard
 
 Open your browser and navigate to:
@@ -94,19 +93,32 @@ http://localhost:5173
 
 To access the dashboard from other devices on your local network:
 
-### 1. Find your Linux PC's IP address
+### 1. Find your computer's IP address
 
+**Linux/macOS:**
 ```bash
 ip addr show | grep inet
+```
+
+**Windows:**
+```batch
+ipconfig
 ```
 
 Look for an IP address like `192.168.x.x` or `10.0.x.x`
 
 ### 2. Allow the ports through your firewall
 
+**Linux/macOS:**
 ```bash
 sudo ufw allow 3000/tcp  # Backend port
 sudo ufw allow 5173/tcp  # Frontend port
+```
+
+**Windows:**
+```batch
+netsh advfirewall firewall add rule name="Cine-Metric Backend" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="Cine-Metric Frontend" dir=in action=allow protocol=TCP localport=5173
 ```
 
 ### 3. Configure network access (optional)
@@ -233,8 +245,10 @@ Then open your browser to: `http://localhost:5173`
 
 **Can't access from other devices**:
 - Verify both devices are on the same WiFi network
-- Check firewall settings: `sudo ufw status`
-- Ensure ports are allowed: `sudo ufw allow 3000/tcp && sudo ufw allow 5173/tcp`
+- Check firewall settings:
+  - Linux/macOS: `sudo ufw status`
+  - Windows: `netsh advfirewall show allprofiles`
+- Ensure ports are allowed (see above for platform-specific commands)
 - Verify your IP address hasn't changed
 
 **Movies not saving**:
@@ -246,6 +260,6 @@ Then open your browser to: `http://localhost:5173`
 
 This project is open source and available for personal use.
 
-## 🎉 Enjoy Your Movie Dashboard!
+## 🎉 Enjoy Your Cine-Metric!
 
 Track your movie journey and discover new favorites! 🍿

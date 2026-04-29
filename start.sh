@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🎬 Starting Movie Dashboard..."
+echo "🎬 Starting Cine-Metric..."
 echo ""
 
 # Function to cleanup processes on exit
@@ -33,7 +33,7 @@ FRONTEND_PID=$!
 cd ..
 
 echo ""
-echo "✅ Movie Dashboard is running!"
+echo "✅ Cine-Metric is running!"
 echo ""
 echo "📱 Local access:"
 echo "   Frontend: http://localhost:5173"

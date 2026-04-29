@@ -38,6 +38,22 @@ body {
                0 0 30px rgba(255, 0, 110, 0.4);
 }
 
+.neon-text-purple {
+  text-shadow: 0 0 10px rgba(131, 56, 236, 0.8),
+               0 0 20px rgba(131, 56, 236, 0.6),
+               0 0 30px rgba(131, 56, 236, 0.4);
+}
+
+.gradient-hyphen {
+  background: linear-gradient(90deg, #00d4ff, #ff006e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 15px rgba(0, 212, 255, 0.6),
+               0 0 30px rgba(255, 0, 110, 0.6);
+  display: inline-block;
+}
+
 .neon-border-cyan {
   box-shadow: 0 0 5px rgba(0, 212, 255, 0.5),
               0 0 10px rgba(0, 212, 255, 0.3),
@@ -46,8 +62,14 @@ body {
 
 .neon-border-magenta {
   box-shadow: 0 0 5px rgba(255, 0, 110, 0.5),
-              0 0 10px rgba(255, 0, 110, 0.3),
-              inset 0 0 5px rgba(255, 0, 110, 0.1);
+               0 0 10px rgba(255, 0, 110, 0.3),
+               inset 0 0 5px rgba(255, 0, 110, 0.1);
+}
+
+.neon-border-purple {
+  box-shadow: 0 0 5px rgba(131, 56, 236, 0.5),
+               0 0 10px rgba(131, 56, 236, 0.3),
+               inset 0 0 5px rgba(131, 56, 236, 0.1);
 }
 
 @keyframes pulse-glow {

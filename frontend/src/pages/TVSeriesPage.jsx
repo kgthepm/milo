@@ -77,11 +77,19 @@ function TVSeriesPageContent() {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence>
-                  {series.map((tvSeries, index) => (
-                    <SeriesCard key={tvSeries.id} series={tvSeries} onEdit={handleEdit} />
-                  ))}
-                </AnimatePresence>
+            <AnimatePresence>
+              {series.map((tvSeries, index) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  key={tvSeries.id}
+                >
+                  <SeriesCard series={tvSeries} onEdit={handleEdit} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
               </div>
             )}
           </div>
@@ -106,7 +114,7 @@ function TVSeriesPageContent() {
                           initial={{ width: 0 }}
                           animate={{ width: `${(genre.count / analytics.total) * 100}%` }}
                           transition={{ duration: 0.5, delay: index * 0.1 }}
-                          className="h-full bg-gradient-to-r from-neon-magenta to-neon-purple rounded-full"
+                          className="h-full bg-gradient-to-r from-neon-magenta via-neon-purple to-neon-magenta rounded-full"
                         />
                       </div>
                     </div>
@@ -132,10 +140,16 @@ function TVSeriesPageContent() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                <span className="neon-text-magenta">TV Series</span>{' '}
-                <span className="neon-text-cyan">Dashboard</span>
+              <h1 className="text-4xl md:text-5xl font-bold mb-1">
+                <span className="neon-text-magenta">Cine</span>
+                <span className="gradient-hyphen mx-1">-</span>
+                <span className="neon-text-cyan">Metric</span>
               </h1>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
+                <span className="text-xl md:text-2xl font-medium text-white/80 tracking-wide">TV Series</span>
+                <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
+              </div>
               <p className="text-white/60">Track, discover, and analyze your TV series journey</p>
             </div>
             <div className="flex gap-3">
@@ -170,7 +184,7 @@ function TVSeriesPageContent() {
               onClick={() => setActiveTab('series')}
               className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'series'
-                  ? 'bg-neon-magenta/20 text-neon-magenta neon-border-magenta'
+                  ? 'bg-gradient-to-r from-neon-magenta/20 to-neon-purple/20 text-neon-magenta neon-border-magenta'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -180,7 +194,7 @@ function TVSeriesPageContent() {
               onClick={() => setActiveTab('recommendations')}
               className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
                 activeTab === 'recommendations'
-                  ? 'bg-neon-magenta/20 text-neon-magenta neon-border-magenta'
+                  ? 'bg-gradient-to-r from-neon-magenta/20 to-neon-purple/20 text-neon-magenta neon-border-magenta'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
               }`}
             >

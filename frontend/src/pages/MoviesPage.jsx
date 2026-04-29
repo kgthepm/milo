@@ -137,8 +137,9 @@ function MoviesPageContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                <span className="neon-text-cyan">Movie</span>{' '}
-                <span className="neon-text-magenta">Dashboard</span>
+                <span className="neon-text-cyan">Cine</span>
+                <span className="gradient-hyphen mx-1">-</span>
+                <span className="neon-text-magenta">Metric</span>
               </h1>
               <p className="text-white/60">Track, discover, and analyze your movie journey</p>
             </div>
