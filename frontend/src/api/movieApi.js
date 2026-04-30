@@ -42,4 +42,17 @@ export const api = {
     if (!response.ok) throw new Error('Failed to fetch analytics');
     return response.json();
   },
+
+  async getRecommendations(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await fetch(`${API_BASE}/recommendations${queryString ? `?${queryString}` : ''}`);
+    if (!response.ok) throw new Error('Failed to fetch recommendations');
+    return response.json();
+  },
+
+  async getOllamaModels() {
+    const response = await fetch(`${API_BASE}/ollama/models`);
+    if (!response.ok) return { models: [] };
+    return response.json();
+  },
 };

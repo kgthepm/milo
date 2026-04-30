@@ -44,4 +44,11 @@ export const tvApi = {
     if (!response.ok) throw new Error('Failed to fetch TV analytics');
     return response.json();
   },
+
+  getRecommendations: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await fetch(`/api/recommendations${queryString ? `?${queryString}` : ''}`);
+    if (!response.ok) throw new Error('Failed to fetch recommendations');
+    return response.json();
+  },
 };

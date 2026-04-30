@@ -4,11 +4,13 @@ A personal movie tracking dashboard with a futuristic dark theme, built with Rea
 
 ## ✨ Features
 
-- **Add & Manage Movies**: Track movies you've watched with ratings (1-10), genres, and notes
-- **Watch History Timeline**: Visual timeline of when you watched movies
-- **Smart Recommendations**: Get movie suggestions based on your favorite genres
+- **Add & Manage Movies & TV**: Track movies and TV series you've watched with ratings (1-10), genres, and notes
+- **AI-Powered Recommendations**: Get personalized movie and TV suggestions using Ollama (optional) with two modes:
+  - **Similar**: Content matching your taste based on viewing history
+  - **Hidden Gems**: Lesser-known but highly-rated content perfect for you
+- **Watch History Timeline**: Visual timeline of when you watched movies and TV shows
 - **Advanced Search & Filter**: Search by title, filter by genre and rating
-- **Analytics Dashboard**: View statistics like total movies, average rating, and top genres
+- **Analytics Dashboard**: View statistics like total movies/TV, average rating, and top genres
 - **Futuristic UI**: Dark theme with neon accents, glassmorphism, and smooth animations
 
 ## 🚀 Quick Start
@@ -39,10 +41,27 @@ A personal movie tracking dashboard with a futuristic dark theme, built with Rea
     cd ..
     ```
 
-4. **Environment configuration** (optional):
-    - No environment variables are required for local development
-    - See `.env.example` for optional configuration options
-    - The Vite dev server automatically handles API routing
+4. **AI/Ollama Setup** (optional, for smart recommendations):
+   
+   AI recommendations use Ollama, a local LLM service. To enable:
+   
+   - **Install Ollama**: https://ollama.com/download
+   - **Pull a model**: `ollama pull qwen2.5:2b` (or any model from the dropdown)
+   - **Start Ollama service**: `ollama serve`
+   
+   The app gracefully degrades to simple recommendations if Ollama is unavailable.
+
+5. **Environment configuration** (optional):
+   
+   Copy `backend/.env.example` to `backend/.env` and customize. Key variables:
+   - `OLLAMA_URL`: Ollama service URL (default: `http://localhost:11434`)
+   - `OLLAMA_MODEL`: Default AI model for recommendations
+   - `OLLAMA_TIMEOUT_MS`: AI generation timeout in ms (default: 480000 / 8 min)
+   - `OLLAMA_MODELS_TIMEOUT_MS`: Model list timeout (default: 30000 / 30 sec)
+   - `OLLAMA_STATUS_TIMEOUT_MS`: Status check timeout (default: 15000 / 15 sec)
+   - `PORT`: Backend HTTP port (default: 3000)
+
+   All values have defaults - set only to override.
 
 ### Running the Application
 
@@ -142,9 +161,12 @@ For example, if your IP is `192.168.1.100`:
 ```
 Movie_Dashboard/
 ├── backend/              # Node.js + Express server
-│   ├── database.js      # SQLite database setup
+│   ├── database.js      # SQLite database setup with auto-migration
 │   ├── server.js        # Main server file
+│   ├── ollama-recommender.js  # AI recommendation engine
 │   ├── routes/          # API routes
+│   │   └── index.js     # All API endpoints
+│   ├── .env.example     # Environment variable template
 │   └── package.json
 ├── frontend/            # React + Vite app
 │   ├── src/
@@ -166,27 +188,41 @@ Movie_Dashboard/
 - Filter by genre and rating
 - Add, edit, and delete movies
 
+### TV Series Tab
+- View all your TV series in a grid layout
+- Track number of seasons and episodes
+- Search, filter, and manage TV shows
+- Add, edit, and delete TV series
+
 ### Timeline Tab
 - Visual timeline of your watch history
 - Grouped by date
 - Animated timeline nodes
 
 ### Recommendations Tab
-- Personalized movie suggestions
-- Based on your favorite genres
+- **Two AI recommendation types** (if Ollama is configured):
+  - **Similar**: Content matching your taste based on viewing history, directors, genres
+  - **Hidden Gems**: Lesser-known but highly-rated content perfect for you
+- **Fallback recommendations**: Simple genre-based suggestions if AI unavailable
+- **24-hour caching**: AI recommendations cached per content type and recommendation type
+- **Model selection**: Choose from installed Ollama models or use default
 - Genre distribution chart
 
 ## 🗄️ Database
 
 The app uses SQLite for data storage. The database file (`movies.db`) is automatically created in the project root when you first run the backend.
 
-**Movies Table Schema**:
+**Movies & TV Table Schema**:
 - `id`: Unique identifier
-- `title`: Movie title
+- `title`: Movie or TV series title
 - `rating`: Rating from 1-10
-- `genre`: Movie genre
-- `date_watched`: Date you watched the movie
+- `genre`: Genre
+- `date_watched`: Date you watched it
 - `notes`: Personal notes/thoughts
+- `director`: Director (for movies) or creator (optional)
+- `type`: Content type (`movie` or `tv`)
+- `num_seasons`: Number of seasons (TV only)
+- `total_episodes`: Total episodes (TV only)
 - `created_at`: Timestamp when added
 
 ## 🔧 Tech Stack
@@ -196,6 +232,7 @@ The app uses SQLite for data storage. The database file (`movies.db`) is automat
 - SQLite3
 - CORS
 - Body-parser
+- Ollama (optional, for AI recommendations)
 
 **Frontend**:
 - React 18
@@ -204,13 +241,61 @@ The app uses SQLite for data storage. The database file (`movies.db`) is automat
 - Framer Motion (animations)
 - Lucide React (icons)
 
+**AI/ML**:
+- Ollama (local LLM runtime)
+- Caching for AI responses (24h TTL)
+
 ## 📝 API Endpoints
 
+### Movies
 - `GET /api/movies` - Get all movies (with optional search/filter params)
 - `POST /api/movies` - Add a new movie
 - `PUT /api/movies/:id` - Update a movie
 - `DELETE /api/movies/:id` - Delete a movie
+
+### TV Series
+- `GET /api/tv` - Get all TV series (with optional search/filter params)
+- `POST /api/tv` - Add a new TV series
+- `PUT /api/tv/:id` - Update a TV series
+- `DELETE /api/tv/:id` - Delete a TV series
+
+### AI/Ollama
+- `GET /api/ollama/models` - List available Ollama models (filters out embeddings)
+- `GET /api/ollama/status` - Check Ollama reachability and configured model
+- `GET /api/recommendations` - Get AI recommendations
+  - Query params: `type` (similar/hidden_gems/all), `content` (movie/tv/all), `model`, `refresh` (true/false)
+
+### Analytics
 - `GET /api/analytics` - Get analytics and recommendations
+- `GET /api/tv/analytics` - Get TV-specific analytics
+
+## 🤖 AI Troubleshooting
+
+**AI recommendations not working:**
+- Verify Ollama is running: `ollama serve` or check if process is active
+- Check Ollama service is reachable at configured URL
+- Ensure a model is installed: `ollama list`
+- Pull a model if needed: `ollama pull qwen2.5:2b`
+- Check backend logs for Ollama error messages
+- Verify `OLLAMA_URL` and `OLLAMA_MODEL` in `.env` if configured
+
+**Ollama timeouts:**
+- Increase `OLLAMA_TIMEOUT_MS` in `.env` (default 480000 / 8 min) for slower systems
+- Increase `OLLAMA_MODELS_TIMEOUT_MS` if model list times out
+- Increase `OLLAMA_STATUS_TIMEOUT_MS` if status check times out
+- Check system resources - Ollama needs CPU/memory to run models
+
+**Models not appearing:**
+- Refresh the model list in the UI
+- Check Ollama is running and models are installed
+- Some models (embedding models) are automatically filtered from the dropdown
+- Pull new models with: `ollama pull <model-name>`
+
+**AI gives poor recommendations:**
+- Add more movies/TV to your database for better context
+- Try a different model from the dropdown
+- Use the "Refresh" button to clear cache and regenerate
+- Both "Similar" and "Hidden Gems" types give different results - try both
 
 ## 🚀 Quick Start with Start Script
 
@@ -226,12 +311,16 @@ Then open your browser to: `http://localhost:5173`
 
 1. **Backup your data**: The `movies.db` file contains all your data. Regularly back it up!
 2. **Port conflicts**: If ports 3000 or 5173 are in use, you can change them in:
-   - Backend: `backend/server.js` (change `PORT` variable)
-   - Frontend: `frontend/vite.config.js` (change `server.port`)
-3. **Persistent access**: For easy access from multiple devices, consider:
-   - Setting up a static IP for your Linux PC
-   - Creating a bookmark on your devices
-   - Using a local DNS (optional)
+    - Backend: `backend/server.js` (change `PORT` variable) or set `PORT` in `.env`
+    - Frontend: `frontend/vite.config.js` (change `server.port`)
+3. **AI models**: 
+    - Smaller models (e.g., `qwen2.5:2b`) are faster but may be less nuanced
+    - Larger models give better recommendations but are slower
+    - Pull new models with: `ollama pull <model-name>`
+4. **Persistent access**: For easy access from multiple devices, consider:
+    - Setting up a static IP for your Linux PC
+    - Creating a bookmark on your devices
+    - Using a local DNS (optional)
 
 ## 🐛 Troubleshooting
 
@@ -251,10 +340,11 @@ Then open your browser to: `http://localhost:5173`
 - Ensure ports are allowed (see above for platform-specific commands)
 - Verify your IP address hasn't changed
 
-**Movies not saving**:
+**Movies/TV not saving**:
 - Check backend is running
 - Check browser console for errors
 - Verify `movies.db` file exists and has write permissions
+- Database auto-migrates on startup - schema changes handled automatically
 
 ## 📄 License
 
@@ -262,4 +352,4 @@ This project is open source and available for personal use.
 
 ## 🎉 Enjoy Your Cine-Metric!
 
-Track your movie journey and discover new favorites! 🍿
+Track your movies and TV series, and discover new favorites! 🍿

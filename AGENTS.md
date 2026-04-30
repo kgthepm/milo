@@ -18,23 +18,30 @@ Both servers bind to `0.0.0.0` for network access.
 # Key Files
 
 - `backend/server.js` - Main server entry point
-- `backend/database.js` - SQLite connection and schema initialization (auto-creates movies table)
-- `backend/routes/index.js` - All API routes
-- `frontend/src/api/movieApi.js` - API client (uses `VITE_API_BASE` env var)
+- `backend/database.js` - SQLite connection, schema init, and auto-migration
+- `backend/routes/index.js` - All API routes (movies and TV)
+- `backend/ollama-recommender.js` - AI recommendations using Ollama (optional)
+- `frontend/src/api/movieApi.js` - API client uses relative `/api` (proxied)
 - `frontend/src/utils/MovieContext.jsx` - State management via React Context
 
-# Environment
+# API Proxy
 
-Frontend API endpoint configured in `frontend/.env`:
-```
-VITE_API_BASE=http://localhost:3000/api
-```
-
-Update for network access and restart frontend after changing.
+Frontend uses Vite proxy to forward `/api` requests to backend. Client uses `/api` not `http://localhost:3000/api`.
 
 # Database
 
-SQLite `movies.db` file is auto-created on first backend run. Schema: `id, title, rating (1-10), genre, date_watched, notes, created_at`.
+SQLite `movies.db` auto-created on first backend run. Schema includes TV support:
+- `id, title, rating (1-10), genre, date_watched, notes, director, type (movie/tv), num_seasons, total_episodes, created_at`
+
+Database auto-migrates on startup via `database.js:migrateDatabase()`. Schema changes handled automatically.
+
+# OLLAMA (Optional)
+
+AI recommendations use Ollama if available. Configure in `backend/.env`:
+- `OLLAMA_URL=http://localhost:11434`
+- `OLLAMA_MODEL=qwen3.5:2b`
+
+Gracefully degrades to fallback recommendations if Ollama unavailable. AI responses cached 24h per content type (`movie` or `tv`) and recommendation type (`similar` or `hidden_gems`).
 
 # No Testing/Typecheck
 

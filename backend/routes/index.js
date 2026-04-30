@@ -1,7 +1,70 @@
 const express = require('express');
+const http = require('http');
 const db = require('../database');
+const ollamaRecommender = require('../ollama-recommender');
 
 const router = express.Router();
+
+router.get('/ollama/models', (req, res) => {
+  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+  const url = new URL(ollamaUrl);
+
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 11434,
+    path: '/api/tags',
+    method: 'GET',
+    timeout: parseInt(process.env.OLLAMA_MODELS_TIMEOUT_MS, 10) || 30000
+  };
+
+  const request = http.request(options, (response) => {
+    let data = '';
+    response.on('data', (chunk) => { data += chunk; });
+    response.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        const allNames = (parsed.models || []).map(m => m.name);
+        const models = allNames.filter(name => !/embed/i.test(name));
+        res.json({ models });
+      } catch {
+        res.json({ models: [], error: 'Failed to parse Ollama response' });
+      }
+    });
+  });
+
+  request.on('error', (err) => res.json({ models: [], error: `Ollama unavailable: ${err.message}` }));
+  request.on('timeout', () => { request.destroy(); res.json({ models: [], error: 'Ollama timeout' }); });
+  request.end();
+});
+
+router.get('/ollama/status', (req, res) => {
+  const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+  const configuredModel = process.env.OLLAMA_MODEL || 'qwen2.5:2b';
+  const url = new URL(ollamaUrl);
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 11434,
+    path: '/api/tags',
+    method: 'GET',
+    timeout: parseInt(process.env.OLLAMA_STATUS_TIMEOUT_MS, 10) || 15000
+  };
+  const request = http.request(options, (response) => {
+    let data = '';
+    response.on('data', (chunk) => { data += chunk; });
+    response.on('end', () => {
+      try {
+        const parsed = JSON.parse(data);
+        const models = (parsed.models || []).map(m => m.name);
+        res.json({ reachable: true, configuredModel, modelAvailable: models.includes(configuredModel), availableModels: models });
+      } catch {
+        res.json({ reachable: true, configuredModel, modelAvailable: false, availableModels: [], error: 'Failed to parse Ollama response' });
+      }
+    });
+  });
+  request.on('error', () => res.json({ reachable: false, configuredModel, modelAvailable: false, availableModels: [], error: 'Ollama unreachable' }));
+  request.on('timeout', () => { request.destroy(); res.json({ reachable: false, configuredModel, modelAvailable: false, availableModels: [], error: 'Ollama timeout' }); });
+  request.end();
+});
 
 router.get('/movies', (req, res) => {
   const { search, genre, minRating, maxRating, startDate, endDate, type } = req.query;
@@ -289,6 +352,88 @@ router.delete('/tv/:id', (req, res) => {
   });
 });
 
+router.get('/recommendations', async (req, res) => {
+  const { type = 'all', content = 'movie', refresh = 'false', model } = req.query;
+  const shouldRefresh = refresh === 'true';
+
+  try {
+    const contentTypes = content === 'all' ? ['movie', 'tv'] : [content];
+    const recommendationTypes = type === 'all' ? ['similar', 'hidden_gems'] : [type];
+
+    const query = `SELECT * FROM movies WHERE type IN (${contentTypes.map(() => '?').join(',')})`;
+    const params = contentTypes;
+
+    // Wrap db.all in a promise
+    const userMovies = await new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+
+    if (shouldRefresh) {
+      recommendationTypes.forEach(recType => {
+        contentTypes.forEach(contentType => {
+          ollamaRecommender.clearCache(contentType, recType, model);
+        });
+      });
+    }
+
+    let allRecommendations = [];
+    let aiError = null;
+
+    for (const recType of recommendationTypes) {
+      for (const contentType of contentTypes) {
+        try {
+          const result = await ollamaRecommender.generateRecommendations(
+            userMovies,
+            recType,
+            contentType,
+            model
+          );
+
+          if (result.recommendations && result.recommendations.length > 0) {
+            allRecommendations = allRecommendations.concat(
+              result.recommendations.map(rec => ({
+                ...rec,
+                type: recType,
+                contentType,
+                cached: result.cached
+              }))
+            );
+          }
+        } catch (error) {
+          aiError = error;
+          console.error(`AI recommendation failed for ${contentType}/${recType}:`, error.message);
+        }
+      }
+    }
+
+    if (allRecommendations.length > 0) {
+      res.json({
+        recommendations: allRecommendations,
+        source: 'ai',
+        message: 'AI-powered recommendations based on your viewing history'
+      });
+    } else {
+      const fallbackRecommendations = content === 'tv'
+        ? generateTVRecommendationsFallback(userMovies)
+        : generateRecommendationsFallback(userMovies);
+
+      res.json({
+        recommendations: fallbackRecommendations,
+        source: 'simple',
+        message: aiError
+          ? 'AI recommendations failed — see details below.'
+          : 'No AI recommendations yet. Try adding more movies or TV series!',
+        aiErrorMessage: aiError ? aiError.message : null
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/analytics', (req, res) => {
   const { type } = req.query;
   const typeCondition = type ? 'WHERE type = ?' : '';
@@ -379,6 +524,103 @@ function generateTVRecommendations(genreData) {
     suggestions: tvGenreBasedRecommendations[topGenre] || 'Explore different genres to get recommendations!',
     message: `Based on your love for ${topGenre} TV series, you might enjoy:`
   };
+}
+
+function generateRecommendationsFallback(userMovies) {
+  if (!userMovies || userMovies.length === 0) {
+    return [];
+  }
+
+  const genreCounts = {};
+  userMovies.forEach(movie => {
+    if (movie.genre) {
+      genreCounts[movie.genre] = (genreCounts[movie.genre] || 0) + 1;
+    }
+  });
+
+  const topGenre = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const genreBasedMovies = {
+    'Action': [
+      { title: 'John Wick 4', year: 2023, genre: 'Action', explanation: 'Intense action sequences and stylish choreography', confidence: 8 },
+      { title: 'Mission: Impossible 7', year: 2023, genre: 'Action', explanation: 'High-stakes spy thriller with incredible stunts', confidence: 8 },
+      { title: 'Extraction 2', year: 2023, genre: 'Action', explanation: 'Brutal fight scenes and non-stop adrenaline', confidence: 7 }
+    ],
+    'Comedy': [
+      { title: 'Everything Everywhere All at Once', year: 2022, genre: 'Comedy', explanation: 'Mind-bending comedy with incredible heart', confidence: 9 },
+      { title: 'The Menu', year: 2022, genre: 'Comedy', explanation: 'Dark comedy satire of fine dining culture', confidence: 8 }
+    ],
+    'Drama': [
+      { title: 'The Holdovers', year: 2023, genre: 'Drama', explanation: 'Character-driven story with excellent performances', confidence: 8 },
+      { title: 'Past Lives', year: 2023, genre: 'Drama', explanation: 'Beautiful exploration of love and destiny', confidence: 8 }
+    ],
+    'Sci-Fi': [
+      { title: 'Dune: Part Two', year: 2024, genre: 'Sci-Fi', explanation: 'Epic sci-fi with stunning visuals and deep themes', confidence: 9 },
+      { title: 'Poor Things', year: 2023, genre: 'Sci-Fi', explanation: 'Bizarre and brilliant sci-fi satire', confidence: 8 }
+    ],
+    'Horror': [
+      { title: 'Talk to Me', year: 2023, genre: 'Horror', explanation: 'Fresh take on supernatural horror with real stakes', confidence: 8 },
+      { title: 'Hereditary', year: 2018, genre: 'Horror', explanation: 'Psychological horror masterpiece', confidence: 9 }
+    ],
+    'Thriller': [
+      { title: 'The Killer', year: 2023, genre: 'Thriller', explanation: 'Stylish assassin thriller with meticulous direction', confidence: 8 },
+      { title: 'Saltburn', year: 2023, genre: 'Thriller', explanation: 'Twisted psychological thriller', confidence: 7 }
+    ]
+  };
+
+  const recommendations = genreBasedMovies[topGenre] || [
+    { title: 'Oppenheimer', year: 2023, genre: 'Drama', explanation: 'Historical epic with brilliant performances', confidence: 9 },
+    { title: 'Barbie', year: 2023, genre: 'Comedy', explanation: 'Subversive comedy with surprising depth', confidence: 8 }
+  ];
+
+  return recommendations.map(rec => ({ ...rec, type: 'similar', contentType: 'movie', cached: true }));
+}
+
+function generateTVRecommendationsFallback(userTV) {
+  if (!userTV || userTV.length === 0) {
+    return [];
+  }
+
+  const genreCounts = {};
+  userTV.forEach(tv => {
+    if (tv.genre) {
+      genreCounts[tv.genre] = (genreCounts[tv.genre] || 0) + 1;
+    }
+  });
+
+  const topGenre = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  const genreBasedTV = {
+    'Action': [
+      { title: 'Fallout', year: 2024, genre: 'Action', explanation: 'Gripping post-apocalyptic adventure', confidence: 9 },
+      { title: 'Shogun', year: 2024, genre: 'Action', explanation: 'Epic historical drama with stunning production', confidence: 9 }
+    ],
+    'Comedy': [
+      { title: 'The Bear', year: 2022, genre: 'Comedy', explanation: 'Intense workplace comedy with incredible depth', confidence: 9 },
+      { title: 'Abbott Elementary', year: 2021, genre: 'Comedy', explanation: 'Heartwarming mockumentary about teaching', confidence: 8 }
+    ],
+    'Drama': [
+      { title: 'Succession', year: 2018, genre: 'Drama', explanation: 'Brilliant family drama with sharp writing', confidence: 10 },
+      { title: 'The Last of Us', year: 2023, genre: 'Drama', explanation: 'Emotional post-apocalyptic journey', confidence: 9 }
+    ],
+    'Sci-Fi': [
+      { title: 'Severance', year: 2022, genre: 'Sci-Fi', explanation: 'Mind-bending workplace thriller', confidence: 9 },
+      { title: '3 Body Problem', year: 2024, genre: 'Sci-Fi', explanation: 'Complex sci-fi adaptation', confidence: 8 }
+    ],
+    'Horror': [
+      { title: 'Yellowjackets', year: 2021, genre: 'Horror', explanation: 'Psychological horror with survival mystery', confidence: 8 },
+      { title: 'The Last of Us', year: 2023, genre: 'Horror', explanation: 'Emotional horror masterpiece', confidence: 9 }
+    ]
+  };
+
+  const recommendations = genreBasedTV[topGenre] || [
+    { title: 'True Detective', year: 2014, genre: 'Drama', explanation: 'Atmospheric crime anthology', confidence: 8 },
+    { title: 'Black Mirror', year: 2011, genre: 'Sci-Fi', explanation: 'Thought-provoking tech anthology', confidence: 8 }
+  ];
+
+  return recommendations.map(rec => ({ ...rec, type: 'similar', contentType: 'tv', cached: true }));
 }
 
 module.exports = router;
