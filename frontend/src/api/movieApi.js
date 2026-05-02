@@ -55,4 +55,26 @@ export const api = {
     if (!response.ok) return { models: [] };
     return response.json();
   },
+
+  async previewLetterboxd(file) {
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    const response = await fetch(`${API_BASE}/letterboxd/preview`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to preview Letterboxd data');
+    return response.json();
+  },
+
+  async importLetterboxd(file) {
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    const response = await fetch(`${API_BASE}/letterboxd/import`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to import Letterboxd data');
+    return response.json();
+  },
 };

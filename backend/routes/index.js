@@ -1,8 +1,13 @@
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const db = require('../database');
 const ollamaRecommender = require('../ollama-recommender');
+const letterboxdImporter = require('../letterboxd-importer');
+const multer = require('multer');
 
+const upload = multer({ dest: path.join(__dirname, '../uploads/') });
 const router = express.Router();
 
 router.get('/ollama/models', (req, res) => {
@@ -622,5 +627,52 @@ function generateTVRecommendationsFallback(userTV) {
 
   return recommendations.map(rec => ({ ...rec, type: 'similar', contentType: 'tv', cached: true }));
 }
+
+router.post('/letterboxd/preview', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const csvData = await letterboxdImporter.parseLetterboxdCSV(req.file.path);
+    const result = await letterboxdImporter.processLetterboxdImport(csvData, false);
+
+    fs.unlinkSync(req.file.path);
+
+    res.json(result);
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/letterboxd/import', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const csvData = await letterboxdImporter.parseLetterboxdCSV(req.file.path);
+    const result = await letterboxdImporter.processLetterboxdImport(csvData, false);
+
+    if (result.toImport > 0) {
+      await letterboxdImporter.importMovies(result.allMovies);
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      ...result,
+      imported: result.toImport
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;

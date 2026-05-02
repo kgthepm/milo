@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Film, RefreshCw } from 'lucide-react';
+import { Plus, Film, RefreshCw, Upload } from 'lucide-react';
 import { MovieProvider, useMovies } from '../utils/MovieContext';
 import MovieCard from '../components/movies/MovieCard';
 import AddMovieModal from '../components/movies/AddMovieModal';
 import EditMovieModal from '../components/movies/EditMovieModal';
+import LetterboxdImportModal from '../components/LetterboxdImportModal';
 import SearchFilter from '../components/shared/SearchFilter';
 import GenreFilter from '../components/shared/GenreFilter';
 import Timeline from '../components/movies/Timeline';
@@ -13,10 +14,11 @@ import Stats from '../components/shared/Stats';
 import TopNav from '../components/shared/TopNav';
 
 function MoviesPageContent() {
-  const { movies, analytics, loading, error, fetchMovies } = useMovies();
+  const { movies, analytics, loading, error, fetchMovies, fetchAnalytics } = useMovies();
   const [activeTab, setActiveTab] = useState('movies');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [filterParams, setFilterParams] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,6 +51,11 @@ function MoviesPageContent() {
   const handleEdit = (movie) => {
     setEditingMovie(movie);
     setShowEditModal(true);
+  };
+
+  const handleImportSuccess = (result) => {
+    fetchMovies();
+    fetchAnalytics();
   };
 
   const renderContent = () => {
@@ -155,6 +162,14 @@ function MoviesPageContent() {
                 <span className="hidden sm:inline">Refresh</span>
               </motion.button>
               <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+                title="Import from Letterboxd"
+              >
+                <Upload size={20} />
+                <span className="hidden sm:inline">Import</span>
+              </button>
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30 transition-all neon-text-cyan"
               >
@@ -219,6 +234,11 @@ function MoviesPageContent() {
 
       <AddMovieModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditMovieModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} movie={editingMovie} />
+      <LetterboxdImportModal 
+        isOpen={showImportModal} 
+        onClose={() => setShowImportModal(false)} 
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   );
 }
