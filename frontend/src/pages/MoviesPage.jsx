@@ -23,7 +23,6 @@ function MoviesPageContent() {
   const [filterParams, setFilterParams] = useState({ sortBy: 'most_recent' });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
-  const [selectedRating, setSelectedRating] = useState('All Rated');
   const [selectedDateRange, setSelectedDateRange] = useState('All time');
   const [sortBy, setSortBy] = useState('most_recent');
 
@@ -37,33 +36,6 @@ function MoviesPageContent() {
   const handleGenreChange = (genre) => {
     setSelectedGenre(genre);
     const newParams = { ...filterParams, genre: genre === 'All' ? undefined : genre };
-    setFilterParams(newParams);
-    fetchMovies(newParams);
-  };
-
-  const handleFilter = (type, value) => {
-    const newParams = { ...filterParams };
-    if (type === 'rating') {
-      newParams.minRating = value.min || undefined;
-      newParams.maxRating = value.max || undefined;
-    }
-    setFilterParams(newParams);
-    fetchMovies(newParams);
-  };
-
-  const handleRatingChange = (rating) => {
-    setSelectedRating(rating);
-    const minRatingMap = {
-      'All Rated': undefined,
-      '8+': 8,
-      '7+': 7,
-      '6+': 6
-    };
-    const newParams = { 
-      ...filterParams, 
-      minRating: minRatingMap[rating],
-      sortBy 
-    };
     setFilterParams(newParams);
     fetchMovies(newParams);
   };
@@ -123,8 +95,6 @@ function MoviesPageContent() {
               onSearch={handleSearch} 
               searchTerm={searchTerm} 
               placeholder="Search movies..."
-              selectedRating={selectedRating}
-              onRatingChange={handleRatingChange}
               selectedDateRange={selectedDateRange}
               onDateRangeChange={handleDateRangeChange}
               sortBy={sortBy}

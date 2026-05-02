@@ -4,8 +4,6 @@ import { Search } from 'lucide-react';
 
 export const genres = ['All', 'Action', 'Comedy', 'Drama', 'Sci-Fi', 'Horror', 'Thriller', 'Romance', 'Animation', 'Documentary', 'Fantasy'];
 
-export const ratingOptions = ['All Rated', '8+', '7+', '6+'];
-
 export const dateRangeOptions = ['All time', 'Last 7 days', 'Last 30 days', 'Last 90 days'];
 
 export const sortOptions = [
@@ -32,28 +30,6 @@ const getDateRangeStart = (range) => {
   startDate.setDate(startDate.getDate() - daysMap[range]);
   return startDate.toISOString().split('T')[0];
 };
-
-function RatingFilterButtons({ selectedRating, onRatingChange }) {
-  return (
-    <div className="glass rounded-xl p-3">
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        {ratingOptions.map((option) => (
-          <button
-            key={option}
-            onClick={() => onRatingChange(option)}
-            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
-              selectedRating === option
-                ? 'bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan neon-text-cyan'
-                : 'glass text-white/70 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function DateFilterButtons({ selectedDateRange, onDateRangeChange }) {
   return (
@@ -99,8 +75,6 @@ export default function SearchFilter({
   onSearch, 
   searchTerm, 
   placeholder = 'Search movies...',
-  selectedRating,
-  onRatingChange,
   selectedDateRange,
   onDateRangeChange,
   sortBy,
@@ -126,12 +100,7 @@ export default function SearchFilter({
       </div>
 
       <div className="flex gap-3">
-        <div className="flex-1">
-          <RatingFilterButtons selectedRating={selectedRating} onRatingChange={onRatingChange} />
-        </div>
-        <div className="flex-1">
-          <DateFilterButtons selectedDateRange={selectedDateRange} onDateRangeChange={onDateRangeChange} />
-        </div>
+        <DateFilterButtons selectedDateRange={selectedDateRange} onDateRangeChange={onDateRangeChange} />
       </div>
 
       <div className="flex justify-end">
