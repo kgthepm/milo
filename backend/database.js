@@ -103,8 +103,8 @@ function migrateDatabase() {
             }
 
             db.run(`
-              INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, created_at, type)
-              SELECT id, title, rating, genre, date_watched, notes, created_at, 'movie'
+              INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, created_at)
+              SELECT id, title, rating, genre, date_watched, notes, director, release_year, COALESCE(type, 'movie'), num_seasons, total_episodes, created_at
               FROM movies
             `, (err) => {
               if (err) {
