@@ -281,7 +281,7 @@ router.get('/tv/analytics', (req, res) => {
 });
 
 router.post('/tv', (req, res) => {
-  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year } = req.body;
 
   if (!title || !rating) {
     res.status(400).json({ error: 'Title and rating are required' });
@@ -294,21 +294,21 @@ router.post('/tv', (req, res) => {
   }
 
   const query = `
-    INSERT INTO movies (title, rating, genre, date_watched, notes, type, num_seasons, total_episodes)
-    VALUES (?, ?, ?, ?, ?, 'tv', ?, ?)
+    INSERT INTO movies (title, rating, genre, date_watched, notes, type, num_seasons, total_episodes, release_year)
+    VALUES (?, ?, ?, ?, ?, 'tv', ?, ?, ?)
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
+    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year });
   });
 });
 
 router.put('/tv/:id', (req, res) => {
-  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year } = req.body;
   const { id } = req.params;
 
   if (!title || !rating) {
@@ -323,11 +323,11 @@ router.put('/tv/:id', (req, res) => {
 
   const query = `
     UPDATE movies
-    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, type = 'tv', num_seasons = ?, total_episodes = ?
+    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, type = 'tv', num_seasons = ?, total_episodes = ?, release_year = ?
     WHERE id = ? AND type = 'tv'
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -336,7 +336,7 @@ router.put('/tv/:id', (req, res) => {
       res.status(404).json({ error: 'TV series not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
+    res.json({ id, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year });
   });
 });
 

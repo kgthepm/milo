@@ -72,6 +72,9 @@ function migrateDatabase() {
     };
 
     checkDateWatchedConstraint((hasNotNullConstraint) => {
+      if (!needsMigration && !hasNotNullConstraint) {
+        recoverTvTypes();
+      }
       if (needsMigration || hasNotNullConstraint) {
         console.log('Running database migration...');
 
@@ -102,9 +105,23 @@ function migrateDatabase() {
               return;
             }
 
+            const targetCols = ['id', 'title', 'rating', 'genre', 'date_watched', 'notes', 'director', 'release_year', 'type', 'num_seasons', 'total_episodes', 'created_at'];
+            const has = (c) => columnNames.includes(c);
+            const sourceExpr = (col) => {
+              if (col === 'type') {
+                return has('type') ? "COALESCE(type, 'movie')" : "'movie'";
+              }
+              if (['director', 'release_year', 'num_seasons', 'total_episodes'].includes(col)) {
+                return has(col) ? col : 'NULL';
+              }
+              return col;
+            };
+            const selectList = targetCols.map(sourceExpr).join(', ');
+            const insertList = targetCols.join(', ');
+
             db.run(`
-              INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, created_at)
-              SELECT id, title, rating, genre, date_watched, notes, director, release_year, COALESCE(type, 'movie'), num_seasons, total_episodes, created_at
+              INSERT INTO movies_new (${insertList})
+              SELECT ${selectList}
               FROM movies
             `, (err) => {
               if (err) {
@@ -121,9 +138,10 @@ function migrateDatabase() {
                 db.run('ALTER TABLE movies_new RENAME TO movies', (err) => {
                   if (err) {
                     console.error('Error renaming table:', err.message);
-                  } else {
-                    console.log('Database migration completed successfully');
+                    return;
                   }
+                  console.log('Database migration completed successfully');
+                  recoverTvTypes();
                 });
               });
             });
@@ -132,6 +150,24 @@ function migrateDatabase() {
       }
     });
   });
+}
+
+function recoverTvTypes() {
+  db.run(
+    `UPDATE movies
+       SET type = 'tv'
+     WHERE type = 'movie'
+       AND (num_seasons IS NOT NULL OR total_episodes IS NOT NULL)`,
+    function (err) {
+      if (err) {
+        console.error('Error recovering TV types:', err.message);
+        return;
+      }
+      if (this.changes > 0) {
+        console.log(`Recovered ${this.changes} row(s) misclassified as movies back to TV series`);
+      }
+    }
+  );
 }
 
 module.exports = db;

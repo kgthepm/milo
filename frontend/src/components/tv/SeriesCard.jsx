@@ -85,6 +85,13 @@ export default function SeriesCard({ series, onEdit }) {
         )}
       </div>
 
+      {series.release_year && (
+        <div className="flex items-center gap-2 text-white/70 text-sm mb-2">
+          <span className="font-medium">Released:</span>
+          <span>{series.release_year}</span>
+        </div>
+      )}
+
       {(series.num_seasons || series.total_episodes) && (
         <div className="flex gap-4 mb-2 text-white/70 text-sm">
           {series.num_seasons && (
