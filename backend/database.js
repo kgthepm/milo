@@ -22,6 +22,7 @@ function initializeDatabase() {
       date_watched TEXT,
       notes TEXT,
       director TEXT,
+      release_year INTEGER,
       type TEXT DEFAULT 'movie',
       num_seasons INTEGER,
       total_episodes INTEGER,
@@ -51,7 +52,8 @@ function migrateDatabase() {
                           columns.find(col => col.name === 'rating' && col.type === 'INTEGER') ||
                           !columnNames.includes('type') ||
                           !columnNames.includes('num_seasons') ||
-                          !columnNames.includes('total_episodes');
+                          !columnNames.includes('total_episodes') ||
+                          !columnNames.includes('release_year');
 
     const checkDateWatchedConstraint = (callback) => {
       db.run("INSERT INTO movies (title, rating, date_watched) VALUES ('_migration_test', 1, NULL)", function(err) {
@@ -88,6 +90,7 @@ function migrateDatabase() {
               date_watched TEXT,
               notes TEXT,
               director TEXT,
+              release_year INTEGER,
               type TEXT DEFAULT 'movie',
               num_seasons INTEGER,
               total_episodes INTEGER,

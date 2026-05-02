@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../database');
 const ollamaRecommender = require('../ollama-recommender');
+const assistant = require('../assistant');
 const letterboxdImporter = require('../letterboxd-importer');
 const multer = require('multer');
 
@@ -124,7 +125,7 @@ router.get('/movies', (req, res) => {
 });
 
 router.post('/movies', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
 
   if (!title || !rating) {
     res.status(400).json({ error: 'Title and rating are required' });
@@ -137,21 +138,21 @@ router.post('/movies', (req, res) => {
   }
 
   const query = `
-    INSERT INTO movies (title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO movies (title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, type || 'movie', num_seasons, total_episodes], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, director, release_year, type || 'movie', num_seasons, total_episodes], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, type: type || 'movie', num_seasons, total_episodes });
+    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, release_year, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 
 router.put('/movies/:id', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
   const { id } = req.params;
 
   if (!title || !rating) {
@@ -166,11 +167,11 @@ router.put('/movies/:id', (req, res) => {
 
   const query = `
     UPDATE movies
-    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, type = ?, num_seasons = ?, total_episodes = ?
+    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, release_year = ?, type = ?, num_seasons = ?, total_episodes = ?
     WHERE id = ?
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, type || 'movie', num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, director, release_year, type || 'movie', num_seasons, total_episodes, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -179,7 +180,7 @@ router.put('/movies/:id', (req, res) => {
       res.status(404).json({ error: 'Movie not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, director, type: type || 'movie', num_seasons, total_episodes });
+    res.json({ id, title, rating, genre, date_watched, notes, director, release_year, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 
@@ -436,6 +437,22 @@ router.get('/recommendations', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/assistant/chat', async (req, res) => {
+  const { message, model, movies, tvSeries, analytics } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    const result = await assistant.generateResponse(message, movies || [], tvSeries || [], analytics || null, model);
+    res.json(result);
+  } catch (error) {
+    console.error('MILO assistant error:', error.message);
+    res.status(500).json({ error: error.message, fallback: true });
   }
 });
 

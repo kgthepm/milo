@@ -14,6 +14,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
     date_watched: '',
     notes: '',
     director: '',
+    release_year: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,6 +27,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
       await addMovie({
         ...formData,
         rating: parseFloat(formData.rating),
+        release_year: formData.release_year ? parseInt(formData.release_year) : null,
       });
       setFormData({
         title: '',
@@ -34,6 +36,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
         date_watched: '',
         notes: '',
         director: '',
+        release_year: '',
       });
       onClose();
     } catch (err) {
@@ -89,6 +92,20 @@ export default function AddMovieModal({ isOpen, onClose }) {
               onChange={(e) => setFormData({ ...formData, director: e.target.value })}
               className="w-full px-4 py-3 rounded-lg glass"
               placeholder="Enter director name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white/80">Release Year</label>
+            <input
+              type="number"
+              min="1900"
+              max={new Date().getFullYear() + 1}
+              step="1"
+              value={formData.release_year}
+              onChange={(e) => setFormData({ ...formData, release_year: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg glass"
+              placeholder="e.g., 1978"
             />
           </div>
 

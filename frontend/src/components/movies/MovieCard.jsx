@@ -76,6 +76,13 @@ export default function MovieCard({ movie, onEdit }) {
         </div>
       )}
 
+      {movie.release_year && (
+        <div className="flex items-center gap-2 text-white/70 text-sm mb-2">
+          <span className="font-medium">Released:</span>
+          <span>{movie.release_year}</span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-2">
         <div className={`flex items-center gap-1 ${ratingClass}`}>
           <Star size={16} fill="currentColor" />

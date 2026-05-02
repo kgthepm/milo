@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { tvApi } from '../api/tvApi';
 
-const TVSeriesContext = createContext();
+export const TVSeriesContext = createContext();
 
 export const TVSeriesProvider = ({ children }) => {
   const [series, setSeries] = useState([]);
