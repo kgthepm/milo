@@ -1,13 +1,36 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Film, Tv, Brain } from 'lucide-react';
+import { Film, Tv } from 'lucide-react';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import AssistantModal from './AssistantModal';
+import miloIcon from '/milo-ai-icon.jpeg';
 
 export default function TopNav() {
   const location = useLocation();
   const isMovies = location.pathname === '/' || location.pathname === '/movies';
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+
+  const messages = [
+    "Chat with MILO",
+    "Need movie recs?",
+    "Ask me anything!",
+    "What should I watch?",
+    "MILO's got you covered",
+    "Let's find something good"
+  ];
+
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState('');
+
+  const handleMouseEnter = () => {
+    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+    setTooltipMessage(randomMessage);
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
 
   return (
     <>
@@ -36,13 +59,29 @@ export default function TopNav() {
         </Link>
       </nav>
 
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-28 right-4 glass rounded-lg px-3 py-1.5 text-xs text-white shadow-lg pointer-events-none z-50 whitespace-nowrap"
+          >
+            {tooltipMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.button
         onClick={() => setIsAssistantOpen(true)}
-        className="fixed bottom-4 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all z-40"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="fixed bottom-4 right-4 w-24 h-24 border-2 border-white/20 flex items-center justify-center transition-all z-40"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <Brain className="text-white" size={24} />
+        <img src={miloIcon} alt="MILO AI" className="w-20 h-20 object-contain" />
       </motion.button>
 
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
