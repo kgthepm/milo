@@ -152,7 +152,7 @@ export default function AssistantModal({ isOpen, onClose }) {
                   className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4"
                 >
                   <p className="text-white/90 text-sm leading-relaxed">
-                    Hello! I'm <strong className="text-purple-400">MILO</strong>, your Cine-metric AI assistant. How can I help you discover your next favorite movie or TV show?
+                    Hello! I'm <strong className="text-purple-400">MILO</strong>, your AI assistant. How can I help you discover your next favorite movie or TV show?
                   </p>
                 </motion.div>
               )}

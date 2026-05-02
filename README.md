@@ -1,4 +1,4 @@
-# 🎬 Cine-Metric
+# 🎬 MILO
 
 A personal movie tracking dashboard with a futuristic dark theme, built with React, Node.js, and SQLite.
 
@@ -136,8 +136,8 @@ sudo ufw allow 5173/tcp  # Frontend port
 
 **Windows:**
 ```batch
-netsh advfirewall firewall add rule name="Cine-Metric Backend" dir=in action=allow protocol=TCP localport=3000
-netsh advfirewall firewall add rule name="Cine-Metric Frontend" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="MILO Backend" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="MILO Frontend" dir=in action=allow protocol=TCP localport=5173
 ```
 
 ### 3. Configure network access (optional)
@@ -350,6 +350,6 @@ Then open your browser to: `http://localhost:5173`
 
 This project is open source and available for personal use.
 
-## 🎉 Enjoy Your Cine-Metric!
+## 🎉 Enjoy Your MILO!
 
 Track your movies and TV series, and discover new favorites! 🍿

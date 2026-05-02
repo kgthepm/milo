@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Cine-Metric** — a personal movie and TV tracking dashboard. React frontend + Express/SQLite backend, no tests or linting configured.
+**MILO** — a personal movie and TV tracking dashboard. React frontend + Express/SQLite backend, no tests or linting configured.
 
 ## Running the App
 

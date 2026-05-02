@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-echo 🎬 Starting Cine-Metric...
+echo 🎬 Starting MILO...
 echo.
 
 :: Function to cleanup processes on exit
@@ -47,7 +47,7 @@ for /f "tokens=2" %%i in ('wmic process where "commandline like '%%npm run dev%%
 cd ..
 
 echo.
-echo ✅ Cine-Metric is running!
+echo ✅ MILO is running!
 echo.
 echo 📱 Local access:
 echo    Frontend: http://localhost:5173
