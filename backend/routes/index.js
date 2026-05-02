@@ -73,7 +73,7 @@ router.get('/ollama/status', (req, res) => {
 });
 
 router.get('/movies', (req, res) => {
-  const { search, genre, minRating, maxRating, startDate, endDate, type } = req.query;
+  const { search, genre, minRating, maxRating, startDate, endDate, type, sortBy } = req.query;
 
   let query = 'SELECT * FROM movies WHERE 1=1';
   const params = [];
@@ -113,7 +113,14 @@ router.get('/movies', (req, res) => {
     params.push(endDate);
   }
 
-  query += ' ORDER BY CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC';
+  const sortClauses = {
+    'most_recent': 'CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'highest_rated': 'rating DESC, CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'lowest_rated': 'rating ASC, CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'title_asc': 'title ASC',
+    'title_desc': 'title DESC'
+  };
+  query += ` ORDER BY ${sortClauses[sortBy] || sortClauses['most_recent']}`;
 
   db.all(query, params, (err, rows) => {
     if (err) {
@@ -203,7 +210,7 @@ router.delete('/movies/:id', (req, res) => {
 });
 
 router.get('/tv', (req, res) => {
-  const { search, genre, minRating, maxRating, startDate, endDate } = req.query;
+  const { search, genre, minRating, maxRating, startDate, endDate, sortBy } = req.query;
 
   let query = 'SELECT * FROM movies WHERE type = ?';
   const params = ['tv'];
@@ -238,7 +245,14 @@ router.get('/tv', (req, res) => {
     params.push(endDate);
   }
 
-  query += ' ORDER BY CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC';
+  const sortClauses = {
+    'most_recent': 'CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'highest_rated': 'rating DESC, CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'lowest_rated': 'rating ASC, CASE WHEN date_watched IS NULL THEN 1 ELSE 0 END, date_watched DESC',
+    'title_asc': 'title ASC',
+    'title_desc': 'title DESC'
+  };
+  query += ` ORDER BY ${sortClauses[sortBy] || sortClauses['most_recent']}`;
 
   db.all(query, params, (err, rows) => {
     if (err) {

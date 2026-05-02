@@ -20,9 +20,12 @@ function MoviesPageContent() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
-  const [filterParams, setFilterParams] = useState({});
+  const [filterParams, setFilterParams] = useState({ sortBy: 'most_recent' });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const [selectedRating, setSelectedRating] = useState('All Rated');
+  const [selectedDateRange, setSelectedDateRange] = useState('All time');
+  const [sortBy, setSortBy] = useState('most_recent');
 
   const handleSearch = (value) => {
     setSearchTerm(value);
@@ -48,6 +51,59 @@ function MoviesPageContent() {
     fetchMovies(newParams);
   };
 
+  const handleRatingChange = (rating) => {
+    setSelectedRating(rating);
+    const minRatingMap = {
+      'All Rated': undefined,
+      '8+': 8,
+      '7+': 7,
+      '6+': 6
+    };
+    const newParams = { 
+      ...filterParams, 
+      minRating: minRatingMap[rating],
+      sortBy 
+    };
+    setFilterParams(newParams);
+    fetchMovies(newParams);
+  };
+
+  const handleDateRangeChange = (range) => {
+    setSelectedDateRange(range);
+    
+    const dateRangeStart = (range) => {
+      if (range === 'All time') return undefined;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const daysMap = {
+        'Last 7 days': 7,
+        'Last 30 days': 30,
+        'Last 90 days': 90
+      };
+      
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - daysMap[range]);
+      return startDate.toISOString().split('T')[0];
+    };
+    
+    const newParams = { 
+      ...filterParams, 
+      startDate: dateRangeStart(range),
+      sortBy 
+    };
+    setFilterParams(newParams);
+    fetchMovies(newParams);
+  };
+
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
+    const newParams = { ...filterParams, sortBy: newSortBy };
+    setFilterParams(newParams);
+    fetchMovies(newParams);
+  };
+
   const handleEdit = (movie) => {
     setEditingMovie(movie);
     setShowEditModal(true);
@@ -63,7 +119,17 @@ function MoviesPageContent() {
       case 'movies':
         return (
           <div className="space-y-6">
-            <SearchFilter onSearch={handleSearch} onFilter={handleFilter} searchTerm={searchTerm} placeholder="Search movies..." />
+            <SearchFilter 
+              onSearch={handleSearch} 
+              searchTerm={searchTerm} 
+              placeholder="Search movies..."
+              selectedRating={selectedRating}
+              onRatingChange={handleRatingChange}
+              selectedDateRange={selectedDateRange}
+              onDateRangeChange={handleDateRangeChange}
+              sortBy={sortBy}
+              onSortChange={handleSortChange}
+            />
             <GenreFilter selectedGenre={selectedGenre} onGenreChange={handleGenreChange} />
             {loading ? (
               <div className="text-center py-12">
@@ -152,7 +218,7 @@ function MoviesPageContent() {
             </div>
             <div className="flex gap-3">
               <motion.button
-                onClick={() => fetchMovies(filterParams)}
+                onClick={() => fetchMovies({ ...filterParams, sortBy })}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
                 whileHover={{ rotate: 180 }}
                 transition={{ duration: 0.3 }}
