@@ -17,6 +17,7 @@ const genreColors = {
 };
 
 const getRatingColor = (rating) => {
+  if (rating == null) return 'text-white/50';
   if (rating >= 8) return 'text-green-400';
   if (rating >= 6) return 'text-yellow-400';
   return 'text-red-400';
@@ -40,6 +41,7 @@ export default function SeriesCard({ series, onEdit }) {
 
   const genreClass = series.genre ? genreColors[series.genre] || 'border-white/20' : 'border-white/20';
   const ratingClass = getRatingColor(series.rating);
+  const hasRating = series.rating != null;
 
   return (
     <motion.div
@@ -74,9 +76,15 @@ export default function SeriesCard({ series, onEdit }) {
 
       <div className="flex items-center gap-2 mb-2">
         <div className={`flex items-center gap-1 ${ratingClass}`}>
-          <Star size={16} fill="currentColor" />
-          <span className="font-bold">{series.rating}</span>
-          <span className="text-white/60 text-sm">/10</span>
+          <Star size={16} fill={hasRating ? 'currentColor' : 'none'} />
+          {hasRating ? (
+            <>
+              <span className="font-bold">{series.rating}</span>
+              <span className="text-white/60 text-sm">/10</span>
+            </>
+          ) : (
+            <span className="font-medium">Unrated</span>
+          )}
         </div>
         {series.genre && (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80">

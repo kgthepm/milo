@@ -10,7 +10,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
   const { updateMovie } = useMovies();
   const [formData, setFormData] = useState({
     title: movie?.title || '',
-    rating: movie?.rating || '',
+    rating: movie?.rating ?? '',
     genre: movie?.genre || '',
     date_watched: movie?.date_watched || '',
     notes: movie?.notes || '',
@@ -23,7 +23,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
     if (movie) {
       setFormData({
         title: movie.title || '',
-        rating: movie.rating || '',
+        rating: movie.rating ?? '',
         genre: movie.genre || '',
         date_watched: movie.date_watched || '',
         notes: movie.notes || '',
@@ -41,7 +41,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
     try {
       await updateMovie(movie.id, {
         ...formData,
-        rating: parseFloat(formData.rating),
+        rating: formData.rating ? parseFloat(formData.rating) : null,
         release_year: formData.release_year ? parseInt(formData.release_year, 10) : null,
       });
       onClose();
@@ -117,17 +117,16 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/80">Rating (1-10) *</label>
+            <label className="block text-sm font-medium mb-2 text-white/80">Rating (1-10)</label>
             <input
               type="number"
               min="1"
               max="10"
               step="0.01"
-              required
               value={formData.rating}
               onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
               className="w-full px-4 py-3 rounded-lg glass"
-              placeholder="Enter rating"
+              placeholder="Leave blank if unrated"
             />
           </div>
 

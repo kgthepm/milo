@@ -193,7 +193,7 @@ function MoviesPageContent() {
               Imported {importSummary.inserted} new movies and updated {importSummary.updated || 0} existing movies from {importSummary.totalCandidates} matched Letterboxd entries.
             </p>
             <p className="mt-1 text-xs text-white/60">
-              Skipped {importSummary.skippedUnrated} unrated, {importSummary.skippedDuplicates} already up-to-date duplicates, and {importSummary.skippedInvalid} invalid rows.
+              Skipped {importSummary.skippedDuplicates} already up-to-date duplicates and {importSummary.skippedInvalid} invalid rows.
             </p>
           </motion.div>
         )}

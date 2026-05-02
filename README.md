@@ -146,12 +146,13 @@ Recommendation requests also support:
 
 ## Letterboxd Import
 
-The movies UI includes a Letterboxd import flow for rated movies.
+The movies UI includes a Letterboxd import flow for watched dates, ratings, or both.
 
-- Upload `ratings.csv`
-- Letterboxd ratings are converted to the app's 1-10 scale
+- Upload `watched.csv`, `ratings.csv`, or both together
+- Letterboxd ratings are converted to the app's 1-10 scale when present
 - Existing movie entries are matched and updated when possible
-- Unrated or invalid rows are skipped
+- Watched-only imports can create unrated entries without overwriting an existing rating
+- Invalid rows are skipped
 
 The backend import endpoint is `POST /api/movies/import`.
 
@@ -163,7 +164,7 @@ The main table includes:
 
 - `id`
 - `title`
-- `rating`
+- `rating` (optional)
 - `genre`
 - `date_watched`
 - `notes`

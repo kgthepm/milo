@@ -17,7 +17,7 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS movies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      rating REAL NOT NULL CHECK(rating >= 1 AND rating <= 10),
+      rating REAL CHECK(rating IS NULL OR (rating >= 1 AND rating <= 10)),
       genre TEXT,
       date_watched TEXT,
       notes TEXT,
@@ -48,8 +48,9 @@ function migrateDatabase() {
     }
 
     const columnNames = columns.map(col => col.name);
-    const needsMigration = !columnNames.includes('director') || 
-                          columns.find(col => col.name === 'rating' && col.type === 'INTEGER') ||
+    const ratingColumn = columns.find(col => col.name === 'rating');
+    const needsMigration = !columnNames.includes('director') ||
+                          (ratingColumn && (ratingColumn.type === 'INTEGER' || ratingColumn.notnull)) ||
                           !columnNames.includes('release_year') ||
                           !columnNames.includes('type') ||
                           !columnNames.includes('num_seasons') ||
@@ -85,7 +86,7 @@ function migrateDatabase() {
             CREATE TABLE movies_new (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               title TEXT NOT NULL,
-              rating REAL NOT NULL CHECK(rating >= 1 AND rating <= 10),
+              rating REAL CHECK(rating IS NULL OR (rating >= 1 AND rating <= 10)),
               genre TEXT,
               date_watched TEXT,
               notes TEXT,
@@ -108,12 +109,16 @@ function migrateDatabase() {
                 : `${fallbackValue} AS ${columnName}`
             );
 
+            const selectRatingColumn = columnNames.includes('rating')
+              ? "CASE WHEN rating >= 1 AND rating <= 10 THEN rating ELSE NULL END AS rating"
+              : 'NULL AS rating';
+
             db.run(`
               INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, created_at)
               SELECT
                 ${selectColumn('id', 'NULL')},
                 ${selectColumn('title', "''")},
-                ${selectColumn('rating', '0')},
+                ${selectRatingColumn},
                 ${selectColumn('genre', 'NULL')},
                 ${selectColumn('date_watched', 'NULL')},
                 ${selectColumn('notes', 'NULL')},

@@ -27,7 +27,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
     try {
       await addMovie({
         ...formData,
-        rating: parseFloat(formData.rating),
+        rating: formData.rating ? parseFloat(formData.rating) : null,
         release_year: formData.release_year ? parseInt(formData.release_year, 10) : null,
       });
       setFormData({
@@ -112,17 +112,16 @@ export default function AddMovieModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/80">Rating (1-10) *</label>
+            <label className="block text-sm font-medium mb-2 text-white/80">Rating (1-10)</label>
             <input
               type="number"
               min="1"
               max="10"
               step="0.01"
-              required
               value={formData.rating}
               onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
               className="w-full px-4 py-3 rounded-lg glass"
-              placeholder="Enter rating"
+              placeholder="Leave blank if unrated"
             />
           </div>
 

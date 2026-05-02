@@ -110,6 +110,47 @@ function getReleaseYearValidationError(value) {
   return null;
 }
 
+function normalizeRating(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = normalizeText(value);
+
+    if (!trimmed) {
+      return null;
+    }
+
+    const parsed = Number.parseFloat(trimmed);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : Number.NaN;
+  }
+
+  return Number.NaN;
+}
+
+function getRatingValidationError(value) {
+  const normalizedRating = normalizeRating(value);
+
+  if (Number.isNaN(normalizedRating)) {
+    return 'Rating must be a number between 1 and 10';
+  }
+
+  if (normalizedRating == null) {
+    return null;
+  }
+
+  if (normalizedRating < 1 || normalizedRating > 10) {
+    return 'Rating must be between 1 and 10';
+  }
+
+  return null;
+}
+
 function parseLetterboxdRating(value) {
   const trimmed = normalizeText(value);
 
@@ -265,7 +306,7 @@ function hasImportedMovieChanges(existingMovie, importedMovie) {
     return true;
   }
 
-  if (Number(existingMovie.rating) !== Number(importedMovie.rating)) {
+  if (importedMovie.rating != null && Number(existingMovie.rating) !== Number(importedMovie.rating)) {
     return true;
   }
 
@@ -286,7 +327,10 @@ function hasImportedMovieChanges(existingMovie, importedMovie) {
 
 function applyImportedMovieUpdate(existingMovie, importedMovie) {
   existingMovie.title = importedMovie.title;
-  existingMovie.rating = importedMovie.rating;
+
+  if (importedMovie.rating != null) {
+    existingMovie.rating = importedMovie.rating;
+  }
 
   if (importedMovie.release_year != null) {
     existingMovie.release_year = importedMovie.release_year;
@@ -385,7 +429,7 @@ async function syncImportedMovies(moviesToInsert, moviesToUpdate) {
 
   const updateQuery = `
     UPDATE movies
-    SET title = ?, rating = ?, date_watched = COALESCE(?, date_watched), notes = COALESCE(?, notes), release_year = COALESCE(?, release_year)
+    SET title = ?, rating = COALESCE(?, rating), date_watched = COALESCE(?, date_watched), notes = COALESCE(?, notes), release_year = COALESCE(?, release_year)
     WHERE id = ? AND type = 'movie'
   `;
 
@@ -528,13 +572,15 @@ router.get('/movies', (req, res) => {
 router.post('/movies', (req, res) => {
   const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
-    res.status(400).json({ error: 'Rating must be between 1 and 10' });
+  const ratingError = getRatingValidationError(rating);
+
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
     return;
   }
 
@@ -545,6 +591,7 @@ router.post('/movies', (req, res) => {
     return;
   }
 
+  const normalizedRating = normalizeRating(rating);
   const normalizedReleaseYear = normalizeReleaseYear(release_year);
 
   const query = `
@@ -552,20 +599,22 @@ router.post('/movies', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes], function(err) {
+  db.run(query, [title, normalizedRating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
+    res.status(201).json({ id: this.lastID, title, rating: normalizedRating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 
 router.post('/movies/import', async (req, res) => {
   const { watchedCsv = '', ratingsCsv = '', reviewsCsv = '' } = req.body || {};
 
-  if (!normalizeText(ratingsCsv) && !normalizeText(reviewsCsv)) {
-    res.status(400).json({ error: 'Letterboxd ratings.csv is required to import rated movies.' });
+  const hasUploadedImportData = [watchedCsv, ratingsCsv, reviewsCsv].some(csvText => normalizeText(csvText));
+
+  if (!hasUploadedImportData) {
+    res.status(400).json({ error: 'Upload at least one Letterboxd watched.csv, ratings.csv, or reviews.csv file.' });
     return;
   }
 
@@ -586,7 +635,6 @@ router.post('/movies/import', async (req, res) => {
     const moviesToInsert = [];
     const moviesToUpdate = [];
 
-    let skippedUnrated = 0;
     let skippedDuplicates = 0;
     let skippedInvalid = 0;
     let updated = 0;
@@ -594,11 +642,6 @@ router.post('/movies/import', async (req, res) => {
     mergedMovies.forEach(movie => {
       if (!movie.title) {
         skippedInvalid += 1;
-        return;
-      }
-
-      if (movie.rating == null) {
-        skippedUnrated += 1;
         return;
       }
 
@@ -625,7 +668,6 @@ router.post('/movies/import', async (req, res) => {
       totalCandidates: mergedMovies.length,
       inserted: moviesToInsert.length,
       updated,
-      skippedUnrated,
       skippedDuplicates,
       skippedInvalid,
     });
@@ -638,13 +680,15 @@ router.put('/movies/:id', (req, res) => {
   const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
   const { id } = req.params;
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
-    res.status(400).json({ error: 'Rating must be between 1 and 10' });
+  const ratingError = getRatingValidationError(rating);
+
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
     return;
   }
 
@@ -655,6 +699,7 @@ router.put('/movies/:id', (req, res) => {
     return;
   }
 
+  const normalizedRating = normalizeRating(rating);
   const normalizedReleaseYear = normalizeReleaseYear(release_year);
 
   const query = `
@@ -663,7 +708,7 @@ router.put('/movies/:id', (req, res) => {
     WHERE id = ?
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, normalizedRating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -672,7 +717,7 @@ router.put('/movies/:id', (req, res) => {
       res.status(404).json({ error: 'Movie not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
+    res.json({ id, title, rating: normalizedRating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 
@@ -761,7 +806,7 @@ router.get('/tv/analytics', (req, res) => {
 
     res.json({
       total: total[0].total,
-      avgRating: avgRating[0].avg_rating ? Math.round(avgRating[0].avg_rating * 100) / 100 : 0,
+      avgRating: avgRating[0].avg_rating != null ? Math.round(avgRating[0].avg_rating * 100) / 100 : null,
       topGenres,
       timeline: timelineData,
       recommendations
@@ -775,27 +820,31 @@ router.get('/tv/analytics', (req, res) => {
 router.post('/tv', (req, res) => {
   const { title, rating, genre, date_watched, notes, num_seasons, total_episodes } = req.body;
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
-    res.status(400).json({ error: 'Rating must be between 1 and 10' });
+  const ratingError = getRatingValidationError(rating);
+
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
     return;
   }
+
+  const normalizedRating = normalizeRating(rating);
 
   const query = `
     INSERT INTO movies (title, rating, genre, date_watched, notes, type, num_seasons, total_episodes)
     VALUES (?, ?, ?, ?, ?, 'tv', ?, ?)
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes], function(err) {
+  db.run(query, [title, normalizedRating, genre, date_watched, notes, num_seasons, total_episodes], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
+    res.status(201).json({ id: this.lastID, title, rating: normalizedRating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
   });
 });
 
@@ -803,15 +852,19 @@ router.put('/tv/:id', (req, res) => {
   const { title, rating, genre, date_watched, notes, num_seasons, total_episodes } = req.body;
   const { id } = req.params;
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
-    res.status(400).json({ error: 'Rating must be between 1 and 10' });
+  const ratingError = getRatingValidationError(rating);
+
+  if (ratingError) {
+    res.status(400).json({ error: ratingError });
     return;
   }
+
+  const normalizedRating = normalizeRating(rating);
 
   const query = `
     UPDATE movies
@@ -819,7 +872,7 @@ router.put('/tv/:id', (req, res) => {
     WHERE id = ? AND type = 'tv'
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, normalizedRating, genre, date_watched, notes, num_seasons, total_episodes, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -828,7 +881,7 @@ router.put('/tv/:id', (req, res) => {
       res.status(404).json({ error: 'TV series not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
+    res.json({ id, title, rating: normalizedRating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes });
   });
 });
 
@@ -961,7 +1014,7 @@ router.get('/analytics', (req, res) => {
 
     res.json({
       total: total[0].total,
-      avgRating: avgRating[0].avg_rating ? Math.round(avgRating[0].avg_rating * 100) / 100 : 0,
+      avgRating: avgRating[0].avg_rating != null ? Math.round(avgRating[0].avg_rating * 100) / 100 : null,
       topGenres,
       timeline: timelineData,
       recommendations
