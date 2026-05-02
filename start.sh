@@ -3,6 +3,58 @@
 echo "🎬 Starting MILO..."
 echo ""
 
+# Check for Node.js
+if ! command -v node &> /dev/null; then
+    echo "❌ Error: Node.js is not installed."
+    echo "Please install Node.js (v18+) from https://nodejs.org/"
+    exit 1
+fi
+
+# Check for npm
+if ! command -v npm &> /dev/null; then
+    echo "❌ Error: npm is not installed."
+    echo "Please install Node.js (v18+) from https://nodejs.org/"
+    exit 1
+fi
+
+echo "✅ Node.js $(node --version) and npm $(npm --version) found"
+echo ""
+
+# Function to install dependencies if needed
+install_if_needed() {
+    local dir=$1
+    local name=$2
+    
+    if [ ! -d "$dir/node_modules" ]; then
+        echo "🔧 Installing $name dependencies..."
+        cd "$dir"
+        if npm install; then
+            echo "✅ $name dependencies installed successfully"
+            cd ..
+            return 0
+        else
+            echo "❌ Failed to install $name dependencies"
+            cd ..
+            return 1
+        fi
+    else
+        echo "✅ $name dependencies already installed, skipping..."
+        return 0
+    fi
+}
+
+# Install backend dependencies if needed
+if ! install_if_needed "backend" "backend"; then
+    exit 1
+fi
+
+# Install frontend dependencies if needed
+if ! install_if_needed "frontend" "frontend"; then
+    exit 1
+fi
+
+echo ""
+
 # Function to cleanup processes on exit
 cleanup() {
     echo ""

@@ -5,6 +5,58 @@ setlocal enabledelayedexpansion
 echo 🎬 Starting MILO...
 echo.
 
+:: Check for Node.js
+where node >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Error: Node.js is not installed.
+    echo Please install Node.js (v18+) from https://nodejs.org/
+    exit /b 1
+)
+
+:: Check for npm
+where npm >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Error: npm is not installed.
+    echo Please install Node.js (v18+) from https://nodejs.org/
+    exit /b 1
+)
+
+for /f "tokens=*" %%i in ('node --version') do set NODE_VERSION=%%i
+for /f "tokens=*" %%i in ('npm --version') do set NPM_VERSION=%%i
+echo ✅ Node.js !NODE_VERSION! and npm !NPM_VERSION! found
+echo.
+
+:: Function to install dependencies if needed
+:install_if_needed
+set "dir=%~1"
+set "name=%~2"
+
+if not exist "!dir!\node_modules" (
+    echo 🔧 Installing !name! dependencies...
+    cd !dir!
+    call npm install
+    if %errorlevel% neq 0 (
+        echo ❌ Failed to install !name! dependencies
+        cd ..
+        exit /b 1
+    )
+    echo ✅ !name! dependencies installed successfully
+    cd ..
+) else (
+    echo ✅ !name! dependencies already installed, skipping...
+)
+exit /b 0
+
+:: Install backend dependencies if needed
+call :install_if_needed "backend" "backend"
+if %errorlevel% neq 0 exit /b 1
+
+:: Install frontend dependencies if needed
+call :install_if_needed "frontend" "frontend"
+if %errorlevel% neq 0 exit /b 1
+
+echo.
+
 :: Function to cleanup processes on exit
 :cleanup
 echo.

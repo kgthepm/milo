@@ -18,56 +18,11 @@ A personal movie tracking dashboard with a futuristic dark theme, built with Rea
 ### Prerequisites
 
 - Node.js (v18+)
-- npm or yarn
+- npm (comes with Node.js)
 
-### Installation
+### Running MILO (Recommended - One Command!)
 
-1. **Clone or navigate to the project directory**:
-    ```bash
-    cd Movie_Dashboard
-    ```
-
-2. **Install backend dependencies**:
-    ```bash
-    cd backend
-    npm install
-    cd ..
-    ```
-
-3. **Install frontend dependencies**:
-    ```bash
-    cd frontend
-    npm install
-    cd ..
-    ```
-
-4. **AI/Ollama Setup** (optional, for smart recommendations):
-   
-   AI recommendations use Ollama, a local LLM service. To enable:
-   
-   - **Install Ollama**: https://ollama.com/download
-   - **Pull a model**: `ollama pull qwen2.5:2b` (or any model from the dropdown)
-   - **Start Ollama service**: `ollama serve`
-   
-   The app gracefully degrades to simple recommendations if Ollama is unavailable.
-
-5. **Environment configuration** (optional):
-   
-   Copy `backend/.env.example` to `backend/.env` and customize. Key variables:
-   - `OLLAMA_URL`: Ollama service URL (default: `http://localhost:11434`)
-   - `OLLAMA_MODEL`: Default AI model for recommendations
-   - `OLLAMA_TIMEOUT_MS`: AI generation timeout in ms (default: 480000 / 8 min)
-   - `OLLAMA_MODELS_TIMEOUT_MS`: Model list timeout (default: 30000 / 30 sec)
-   - `OLLAMA_STATUS_TIMEOUT_MS`: Status check timeout (default: 15000 / 15 sec)
-   - `PORT`: Backend HTTP port (default: 3000)
-
-   All values have defaults - set only to override.
-
-### Running the Application
-
-#### Option 1: Use the start script (Recommended)
-
-The easiest way to run both servers is to use the provided start script:
+The start scripts handle everything automatically - including first-time setup:
 
 **Linux/macOS:**
 ```bash
@@ -79,9 +34,35 @@ The easiest way to run both servers is to use the provided start script:
 start.bat
 ```
 
-This will start both the backend and frontend servers in the background and keep them running.
+That's it! The scripts will:
+- ✅ Check if Node.js/npm is installed
+- ✅ Auto-install dependencies if needed (first run only)
+- ✅ Start both backend and frontend servers
+- ✅ Display access URLs
 
-Press `Ctrl+C` to stop both servers.
+**Press `Ctrl+C` to stop both servers**
+
+### Optional: AI/Ollama Setup (for smart recommendations)
+
+AI recommendations use Ollama, a local LLM service. To enable:
+
+- **Install Ollama**: https://ollama.com/download
+- **Pull a model**: `ollama pull qwen2.5:2b` (or any model from the dropdown)
+- **Start Ollama service**: `ollama serve`
+
+The app gracefully degrades to simple recommendations if Ollama is unavailable.
+
+### Optional: Environment Configuration
+
+Copy `backend/.env.example` to `backend/.env` and customize. Key variables:
+- `OLLAMA_URL`: Ollama service URL (default: `http://localhost:11434`)
+- `OLLAMA_MODEL`: Default AI model for recommendations
+- `OLLAMA_TIMEOUT_MS`: AI generation timeout in ms (default: 480000 / 8 min)
+- `OLLAMA_MODELS_TIMEOUT_MS`: Model list timeout (default: 30000 / 30 sec)
+- `OLLAMA_STATUS_TIMEOUT_MS`: Status check timeout (default: 15000 / 15 sec)
+- `PORT`: Backend HTTP port (default: 3000)
+
+All values have defaults - set only to override.
 
 #### Option 2: Run in separate terminals
 
@@ -299,10 +280,16 @@ The app uses SQLite for data storage. The database file (`movies.db`) is automat
 
 ## 🚀 Quick Start with Start Script
 
-The easiest way to get started:
+The easiest way to get started (handles everything automatically):
 
+**Linux/macOS:**
 ```bash
 ./start.sh
+```
+
+**Windows:**
+```batch
+start.bat
 ```
 
 Then open your browser to: `http://localhost:5173`
