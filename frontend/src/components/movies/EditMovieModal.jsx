@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { useMovies } from '../../utils/MovieContext';
 
 const genres = ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Horror', 'Thriller', 'Romance', 'Animation', 'Documentary', 'Fantasy'];
+const MAX_RELEASE_YEAR = new Date().getFullYear() + 5;
 
 export default function EditMovieModal({ isOpen, onClose, movie }) {
   const { updateMovie } = useMovies();
@@ -14,6 +15,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
     date_watched: movie?.date_watched || '',
     notes: movie?.notes || '',
     director: movie?.director || '',
+    release_year: movie?.release_year ?? '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,6 +28,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
         date_watched: movie.date_watched || '',
         notes: movie.notes || '',
         director: movie.director || '',
+        release_year: movie.release_year ?? '',
       });
     }
   }, [movie]);
@@ -39,6 +42,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
       await updateMovie(movie.id, {
         ...formData,
         rating: parseFloat(formData.rating),
+        release_year: formData.release_year ? parseInt(formData.release_year, 10) : null,
       });
       onClose();
     } catch (err) {
@@ -86,15 +90,30 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-white/80">Director</label>
-            <input
-              type="text"
-              value={formData.director}
-              onChange={(e) => setFormData({ ...formData, director: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg glass"
-              placeholder="Enter director name"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white/80">Director</label>
+              <input
+                type="text"
+                value={formData.director}
+                onChange={(e) => setFormData({ ...formData, director: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg glass"
+                placeholder="Enter director name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white/80">Release Year</label>
+              <input
+                type="number"
+                min="1888"
+                max={MAX_RELEASE_YEAR}
+                value={formData.release_year}
+                onChange={(e) => setFormData({ ...formData, release_year: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg glass"
+                placeholder="e.g. 1999"
+              />
+            </div>
           </div>
 
           <div>

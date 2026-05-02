@@ -22,6 +22,7 @@ function initializeDatabase() {
       date_watched TEXT,
       notes TEXT,
       director TEXT,
+      release_year INTEGER,
       type TEXT DEFAULT 'movie',
       num_seasons INTEGER,
       total_episodes INTEGER,
@@ -49,6 +50,7 @@ function migrateDatabase() {
     const columnNames = columns.map(col => col.name);
     const needsMigration = !columnNames.includes('director') || 
                           columns.find(col => col.name === 'rating' && col.type === 'INTEGER') ||
+                          !columnNames.includes('release_year') ||
                           !columnNames.includes('type') ||
                           !columnNames.includes('num_seasons') ||
                           !columnNames.includes('total_episodes');
@@ -88,6 +90,7 @@ function migrateDatabase() {
               date_watched TEXT,
               notes TEXT,
               director TEXT,
+              release_year INTEGER,
               type TEXT DEFAULT 'movie',
               num_seasons INTEGER,
               total_episodes INTEGER,
@@ -99,9 +102,27 @@ function migrateDatabase() {
               return;
             }
 
+            const selectColumn = (columnName, fallbackValue) => (
+              columnNames.includes(columnName)
+                ? columnName
+                : `${fallbackValue} AS ${columnName}`
+            );
+
             db.run(`
-              INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, created_at, type)
-              SELECT id, title, rating, genre, date_watched, notes, created_at, 'movie'
+              INSERT INTO movies_new (id, title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, created_at)
+              SELECT
+                ${selectColumn('id', 'NULL')},
+                ${selectColumn('title', "''")},
+                ${selectColumn('rating', '0')},
+                ${selectColumn('genre', 'NULL')},
+                ${selectColumn('date_watched', 'NULL')},
+                ${selectColumn('notes', 'NULL')},
+                ${selectColumn('director', 'NULL')},
+                ${selectColumn('release_year', 'NULL')},
+                ${selectColumn('type', "'movie'")},
+                ${selectColumn('num_seasons', 'NULL')},
+                ${selectColumn('total_episodes', 'NULL')},
+                ${selectColumn('created_at', 'CURRENT_TIMESTAMP')}
               FROM movies
             `, (err) => {
               if (err) {

@@ -1,67 +1,46 @@
 @echo off
-chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal
 
-echo 🎬 Starting Cine-Metric...
+set "ROOT=%~dp0"
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
+
+echo Starting Cine-Metric...
 echo.
 
-:: Function to cleanup processes on exit
-:cleanup
+where npm >nul 2>&1
+if errorlevel 1 goto :npm_missing
+
+echo Installing backend dependencies...
+call npm install --prefix "%ROOT%\backend"
+if errorlevel 1 goto :install_failed
+
 echo.
-echo 🛑 Stopping servers...
-if defined BACKEND_PID (
-    taskkill /F /PID !BACKEND_PID! >nul 2>&1
-)
-if defined FRONTEND_PID (
-    taskkill /F /PID !FRONTEND_PID! >nul 2>&1
-)
-endlocal
+echo Installing frontend dependencies...
+call npm install --prefix "%ROOT%\frontend"
+if errorlevel 1 goto :install_failed
+
+echo.
+echo Starting backend server...
+start "Cine-Metric Backend" /D "%ROOT%\backend" cmd /k npm start
+
+echo Starting frontend server...
+start "Cine-Metric Frontend" /D "%ROOT%\frontend" cmd /k npm run dev
+
+echo.
+echo Cine-Metric is running.
+echo.
+echo Frontend: http://localhost:5173
+echo Backend:  http://localhost:3000
+echo.
+echo Use Ctrl+C in each server window to stop the app.
 exit /b 0
 
-:: Set trap to cleanup on Ctrl+C
-trap cleanup
-
-:: Start backend
-echo 📡 Starting backend server...
-cd backend
-start /B cmd /c "node server.js" >nul 2>&1
-
-:: Capture backend PID using wmic
-for /f "tokens=2" %%i in ('wmic process where "commandline like '%%node server.js%%'" get processid ^| findstr /r "[0-9]"') do (
-    set BACKEND_PID=%%i
-)
-cd ..
-
-:: Wait a moment for backend to start
-timeout /t 2 /nobreak >nul
-
-:: Start frontend
-echo 🎨 Starting frontend server...
-cd frontend
-start /B cmd /c "npm run dev" >nul 2>&1
-
-:: Capture frontend PID using wmic
-for /f "tokens=2" %%i in ('wmic process where "commandline like '%%npm run dev%%'" get processid ^| findstr /r "[0-9]"') do (
-    set FRONTEND_PID=%%i
-)
-cd ..
-
+:install_failed
 echo.
-echo ✅ Cine-Metric is running!
-echo.
-echo 📱 Local access:
-echo    Frontend: http://localhost:5173
-echo    Backend:  http://localhost:3000
-echo.
-echo 🌐 To access from other devices:
-echo    1. Find your IP: ipconfig
-echo    2. Access from other device: http://YOUR_IP:5173
-echo    Note: API requests are now proxied automatically!
-echo.
-echo ⌨️  Press Ctrl+C to stop all servers
-echo.
+echo Failed while installing dependencies.
+exit /b %errorlevel%
 
-:: Wait indefinitely
-:wait_loop
-timeout /t 1 /nobreak >nul
-goto wait_loop
+:npm_missing
+echo.
+echo npm was not found in PATH. Install Node.js, then try again.
+exit /b 1

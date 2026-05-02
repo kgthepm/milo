@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Film, RefreshCw } from 'lucide-react';
+import { Plus, Film, RefreshCw, Upload } from 'lucide-react';
 import { MovieProvider, useMovies } from '../utils/MovieContext';
 import MovieCard from '../components/movies/MovieCard';
 import AddMovieModal from '../components/movies/AddMovieModal';
 import EditMovieModal from '../components/movies/EditMovieModal';
+import ImportLetterboxdModal from '../components/movies/ImportLetterboxdModal';
 import SearchFilter from '../components/shared/SearchFilter';
 import GenreFilter from '../components/shared/GenreFilter';
 import Timeline from '../components/movies/Timeline';
@@ -17,10 +18,12 @@ function MoviesPageContent() {
   const [activeTab, setActiveTab] = useState('movies');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [filterParams, setFilterParams] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const [importSummary, setImportSummary] = useState(null);
 
   const handleSearch = (value) => {
     setSearchTerm(value);
@@ -49,6 +52,11 @@ function MoviesPageContent() {
   const handleEdit = (movie) => {
     setEditingMovie(movie);
     setShowEditModal(true);
+  };
+
+  const handleImportComplete = (summary) => {
+    setImportSummary(summary);
+    setShowImportModal(false);
   };
 
   const renderContent = () => {
@@ -155,6 +163,13 @@ function MoviesPageContent() {
                 <span className="hidden sm:inline">Refresh</span>
               </motion.button>
               <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-neon-cyan hover:bg-white/10 font-medium transition-all"
+              >
+                <Upload size={20} />
+                <span className="hidden sm:inline">Import</span>
+              </button>
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30 transition-all neon-text-cyan"
               >
@@ -166,6 +181,22 @@ function MoviesPageContent() {
         </motion.header>
 
         <TopNav />
+
+        {importSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 p-4 text-white/80"
+          >
+            <p className="font-semibold neon-text-cyan">Letterboxd import complete</p>
+            <p className="mt-1 text-sm">
+              Imported {importSummary.inserted} new movies and updated {importSummary.updated || 0} existing movies from {importSummary.totalCandidates} matched Letterboxd entries.
+            </p>
+            <p className="mt-1 text-xs text-white/60">
+              Skipped {importSummary.skippedUnrated} unrated, {importSummary.skippedDuplicates} already up-to-date duplicates, and {importSummary.skippedInvalid} invalid rows.
+            </p>
+          </motion.div>
+        )}
 
         <Stats analytics={analytics} type="movie" />
 
@@ -219,6 +250,11 @@ function MoviesPageContent() {
 
       <AddMovieModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditMovieModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} movie={editingMovie} />
+      <ImportLetterboxdModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={handleImportComplete}
+      />
     </div>
   );
 }

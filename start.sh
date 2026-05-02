@@ -1,36 +1,47 @@
 #!/bin/bash
 
+set -e
+
+BACKEND_PID=""
+FRONTEND_PID=""
+
 echo "🎬 Starting Cine-Metric..."
 echo ""
 
-# Function to cleanup processes on exit
 cleanup() {
     echo ""
     echo "🛑 Stopping servers..."
-    kill $BACKEND_PID 2>/dev/null
-    kill $FRONTEND_PID 2>/dev/null
+
+    if [ -n "$BACKEND_PID" ]; then
+        kill "$BACKEND_PID" 2>/dev/null || true
+    fi
+
+    if [ -n "$FRONTEND_PID" ]; then
+        kill "$FRONTEND_PID" 2>/dev/null || true
+    fi
+
     exit 0
 }
 
-# Set trap to cleanup on Ctrl+C
 trap cleanup SIGINT SIGTERM
 
-# Start backend
-echo "📡 Starting backend server..."
-cd backend
-node server.js &
-BACKEND_PID=$!
-cd ..
+echo "📦 Installing backend dependencies..."
+npm install --prefix backend
+echo ""
 
-# Wait a moment for backend to start
+echo "📦 Installing frontend dependencies..."
+npm install --prefix frontend
+echo ""
+
+echo "📡 Starting backend server..."
+(cd backend && npm start) &
+BACKEND_PID=$!
+
 sleep 2
 
-# Start frontend
 echo "🎨 Starting frontend server..."
-cd frontend
-npm run dev &
+(cd frontend && npm run dev) &
 FRONTEND_PID=$!
-cd ..
 
 echo ""
 echo "✅ Cine-Metric is running!"

@@ -1,9 +1,416 @@
 const express = require('express');
 const http = require('http');
+const { parse } = require('csv-parse/sync');
 const db = require('../database');
 const ollamaRecommender = require('../ollama-recommender');
 
 const router = express.Router();
+const MIN_RELEASE_YEAR = 1888;
+const RELEASE_YEAR_FUTURE_BUFFER = 5;
+
+function dbAll(query, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(rows);
+    });
+  });
+}
+
+function dbRun(query, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(query, params, function(err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(this);
+    });
+  });
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function emptyToNull(value) {
+  const trimmed = normalizeText(value);
+  return trimmed || null;
+}
+
+function normalizeDate(value) {
+  const trimmed = normalizeText(value);
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function getMaxReleaseYear() {
+  return new Date().getFullYear() + RELEASE_YEAR_FUTURE_BUFFER;
+}
+
+function normalizeReleaseYear(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isInteger(value)) {
+      return null;
+    }
+
+    return value >= MIN_RELEASE_YEAR && value <= getMaxReleaseYear() ? value : null;
+  }
+
+  const trimmed = normalizeText(value);
+
+  if (!trimmed || !/^\d{4}$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(trimmed, 10);
+  return parsed >= MIN_RELEASE_YEAR && parsed <= getMaxReleaseYear() ? parsed : null;
+}
+
+function getReleaseYearValidationError(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === 'string' && !value.trim()) {
+    return null;
+  }
+
+  if (normalizeReleaseYear(value) == null) {
+    return `Release year must be a 4-digit year between ${MIN_RELEASE_YEAR} and ${getMaxReleaseYear()}`;
+  }
+
+  return null;
+}
+
+function parseLetterboxdRating(value) {
+  const trimmed = normalizeText(value);
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(trimmed);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  const converted = parsed * 2;
+  return converted >= 1 && converted <= 10 ? converted : null;
+}
+
+function parseCsvHeaders(csvText, fileLabel) {
+  try {
+    const [headerRow = []] = parse(csvText, {
+      bom: true,
+      relax_column_count: true,
+      to_line: 1,
+      trim: true,
+    });
+
+    return headerRow;
+  } catch (error) {
+    throw new Error(`Failed to read ${fileLabel} headers: ${error.message}`);
+  }
+}
+
+function parseLetterboxdCsv(csvText, fileLabel, requiredHeaders = []) {
+  const rawText = typeof csvText === 'string' ? csvText : '';
+
+  if (!rawText.trim()) {
+    return [];
+  }
+
+  const headers = parseCsvHeaders(rawText, fileLabel);
+  const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+
+  if (missingHeaders.length > 0) {
+    throw new Error(`${fileLabel} is missing required columns: ${missingHeaders.join(', ')}`);
+  }
+
+  try {
+    return parse(rawText, {
+      bom: true,
+      columns: true,
+      relax_column_count: true,
+      skip_empty_lines: true,
+      trim: true,
+    });
+  } catch (error) {
+    throw new Error(`Failed to parse ${fileLabel}: ${error.message}`);
+  }
+}
+
+function getLetterboxdEntryKey(row) {
+  const uri = normalizeText(row['Letterboxd URI']);
+
+  if (uri) {
+    return `uri:${uri}`;
+  }
+
+  const title = normalizeText(row.Name).toLowerCase();
+  const year = normalizeText(row.Year);
+
+  if (title && year) {
+    return `title:${title}:${year}`;
+  }
+
+  if (title) {
+    return `title:${title}`;
+  }
+
+  return null;
+}
+
+function buildImportedMovieKey(movie) {
+  return [
+    normalizeText(movie.title).toLowerCase(),
+    movie.date_watched || '',
+    movie.rating == null ? '' : String(Number(movie.rating)),
+    movie.type || 'movie',
+  ].join('::');
+}
+
+function getImportedMovieYear(movie) {
+  return movie.release_year == null ? null : Number(movie.release_year);
+}
+
+function isCompatibleImportedMovieYear(existingMovie, importedMovie) {
+  const existingYear = getImportedMovieYear(existingMovie);
+  const importedYear = getImportedMovieYear(importedMovie);
+
+  return existingYear == null || importedYear == null || existingYear === importedYear;
+}
+
+function findImportedMovieMatch(existingMovies, importedMovie) {
+  const importedTitle = normalizeText(importedMovie.title).toLowerCase();
+  const importedYear = getImportedMovieYear(importedMovie);
+  const importedType = importedMovie.type || 'movie';
+  const sameTitleMovies = existingMovies.filter(movie => (
+    (movie.type || 'movie') === importedType &&
+    normalizeText(movie.title).toLowerCase() === importedTitle
+  ));
+
+  const exactKeyCandidates = sameTitleMovies.filter(movie => buildImportedMovieKey(movie) === buildImportedMovieKey(importedMovie));
+
+  if (exactKeyCandidates.length === 1 && isCompatibleImportedMovieYear(exactKeyCandidates[0], importedMovie)) {
+    return exactKeyCandidates[0];
+  }
+
+  if (exactKeyCandidates.length > 1) {
+    const exactYearCandidates = exactKeyCandidates.filter(movie => getImportedMovieYear(movie) === importedYear);
+
+    if (exactYearCandidates.length === 1) {
+      return exactYearCandidates[0];
+    }
+
+    if (exactYearCandidates.length === 0) {
+      const nullYearCandidates = exactKeyCandidates.filter(movie => getImportedMovieYear(movie) == null);
+
+      if (nullYearCandidates.length === 1) {
+        return nullYearCandidates[0];
+      }
+    }
+
+    return null;
+  }
+
+  if (importedYear != null) {
+    const sameYearMovies = sameTitleMovies.filter(movie => getImportedMovieYear(movie) === importedYear);
+
+    if (sameYearMovies.length === 1) {
+      return sameYearMovies[0];
+    }
+
+    if (sameYearMovies.length === 0 && sameTitleMovies.length === 1 && getImportedMovieYear(sameTitleMovies[0]) == null) {
+      return sameTitleMovies[0];
+    }
+
+    return null;
+  }
+
+  return sameTitleMovies.length === 1 ? sameTitleMovies[0] : null;
+}
+
+function hasImportedMovieChanges(existingMovie, importedMovie) {
+  if (existingMovie.title !== importedMovie.title) {
+    return true;
+  }
+
+  if (Number(existingMovie.rating) !== Number(importedMovie.rating)) {
+    return true;
+  }
+
+  if (importedMovie.release_year != null && getImportedMovieYear(existingMovie) !== getImportedMovieYear(importedMovie)) {
+    return true;
+  }
+
+  if (importedMovie.date_watched != null && existingMovie.date_watched !== importedMovie.date_watched) {
+    return true;
+  }
+
+  if (importedMovie.notes != null && existingMovie.notes !== importedMovie.notes) {
+    return true;
+  }
+
+  return false;
+}
+
+function applyImportedMovieUpdate(existingMovie, importedMovie) {
+  existingMovie.title = importedMovie.title;
+  existingMovie.rating = importedMovie.rating;
+
+  if (importedMovie.release_year != null) {
+    existingMovie.release_year = importedMovie.release_year;
+  }
+
+  if (importedMovie.date_watched != null) {
+    existingMovie.date_watched = importedMovie.date_watched;
+  }
+
+  if (importedMovie.notes != null) {
+    existingMovie.notes = importedMovie.notes;
+  }
+
+  return existingMovie;
+}
+
+function mergeLetterboxdExports(watchedRows, ratingsRows, reviewRows) {
+  const mergedEntries = new Map();
+
+  const upsertEntry = (row, source) => {
+    const key = getLetterboxdEntryKey(row);
+    const releaseYear = normalizeReleaseYear(row.Year);
+
+    if (!key) {
+      return;
+    }
+
+    const existingEntry = mergedEntries.get(key) || {
+      title: emptyToNull(row.Name),
+      rating: null,
+      release_year: releaseYear,
+      watchedDate: null,
+      ratedDate: null,
+      reviewWatchedDate: null,
+      review: null,
+    };
+
+    if (!existingEntry.title) {
+      existingEntry.title = emptyToNull(row.Name);
+    }
+
+    if (existingEntry.release_year == null && releaseYear != null) {
+      existingEntry.release_year = releaseYear;
+    }
+
+    if (source === 'watched' && !existingEntry.watchedDate) {
+      existingEntry.watchedDate = normalizeDate(row.Date);
+    }
+
+    if (source === 'ratings') {
+      if (existingEntry.rating == null) {
+        existingEntry.rating = parseLetterboxdRating(row.Rating);
+      }
+
+      if (!existingEntry.ratedDate) {
+        existingEntry.ratedDate = normalizeDate(row.Date);
+      }
+    }
+
+    if (source === 'reviews') {
+      if (existingEntry.rating == null) {
+        existingEntry.rating = parseLetterboxdRating(row.Rating);
+      }
+
+      if (!existingEntry.reviewWatchedDate) {
+        existingEntry.reviewWatchedDate = normalizeDate(row['Watched Date']) || normalizeDate(row.Date);
+      }
+
+      if (!existingEntry.review) {
+        existingEntry.review = emptyToNull(row.Review);
+      }
+    }
+
+    mergedEntries.set(key, existingEntry);
+  };
+
+  watchedRows.forEach(row => upsertEntry(row, 'watched'));
+  ratingsRows.forEach(row => upsertEntry(row, 'ratings'));
+  reviewRows.forEach(row => upsertEntry(row, 'reviews'));
+
+  return Array.from(mergedEntries.values()).map(entry => ({
+    title: entry.title,
+    rating: entry.rating,
+    release_year: entry.release_year,
+    date_watched: entry.reviewWatchedDate || entry.watchedDate || entry.ratedDate || null,
+    notes: entry.review,
+    type: 'movie',
+  }));
+}
+
+async function syncImportedMovies(moviesToInsert, moviesToUpdate) {
+  const insertQuery = `
+    INSERT INTO movies (title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes)
+    VALUES (?, ?, NULL, ?, ?, NULL, ?, 'movie', NULL, NULL)
+  `;
+
+  const updateQuery = `
+    UPDATE movies
+    SET title = ?, rating = ?, date_watched = COALESCE(?, date_watched), notes = COALESCE(?, notes), release_year = COALESCE(?, release_year)
+    WHERE id = ? AND type = 'movie'
+  `;
+
+  await dbRun('BEGIN TRANSACTION');
+
+  try {
+    for (const movie of moviesToUpdate) {
+      await dbRun(updateQuery, [movie.title, movie.rating, movie.date_watched, movie.notes, movie.release_year, movie.id]);
+    }
+
+    for (const movie of moviesToInsert) {
+      await dbRun(insertQuery, [movie.title, movie.rating, movie.date_watched, movie.notes, movie.release_year]);
+    }
+
+    await dbRun('COMMIT');
+  } catch (error) {
+    try {
+      await dbRun('ROLLBACK');
+    } catch {
+      // Ignore rollback failures so the original import error is returned.
+    }
+
+    throw error;
+  }
+}
 
 router.get('/ollama/models', (req, res) => {
   const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
@@ -119,7 +526,7 @@ router.get('/movies', (req, res) => {
 });
 
 router.post('/movies', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
 
   if (!title || !rating) {
     res.status(400).json({ error: 'Title and rating are required' });
@@ -131,22 +538,104 @@ router.post('/movies', (req, res) => {
     return;
   }
 
+  const releaseYearError = getReleaseYearValidationError(release_year);
+
+  if (releaseYearError) {
+    res.status(400).json({ error: releaseYearError });
+    return;
+  }
+
+  const normalizedReleaseYear = normalizeReleaseYear(release_year);
+
   const query = `
-    INSERT INTO movies (title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO movies (title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, type || 'movie', num_seasons, total_episodes], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, type: type || 'movie', num_seasons, total_episodes });
+    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 
+router.post('/movies/import', async (req, res) => {
+  const { watchedCsv = '', ratingsCsv = '', reviewsCsv = '' } = req.body || {};
+
+  if (!normalizeText(ratingsCsv) && !normalizeText(reviewsCsv)) {
+    res.status(400).json({ error: 'Letterboxd ratings.csv is required to import rated movies.' });
+    return;
+  }
+
+  try {
+    const watchedRows = parseLetterboxdCsv(watchedCsv, 'watched.csv', ['Name']);
+    const ratingsRows = parseLetterboxdCsv(ratingsCsv, 'ratings.csv', ['Name', 'Rating']);
+    const reviewRows = parseLetterboxdCsv(reviewsCsv, 'reviews.csv', ['Name', 'Review']);
+
+    const mergedMovies = mergeLetterboxdExports(watchedRows, ratingsRows, reviewRows);
+
+    if (mergedMovies.length === 0) {
+      res.status(400).json({ error: 'No Letterboxd entries were found in the uploaded files.' });
+      return;
+    }
+
+    const existingMovies = await dbAll('SELECT id, title, rating, release_year, date_watched, notes, type FROM movies WHERE type = ?', ['movie']);
+    const trackedMovies = [...existingMovies];
+    const moviesToInsert = [];
+    const moviesToUpdate = [];
+
+    let skippedUnrated = 0;
+    let skippedDuplicates = 0;
+    let skippedInvalid = 0;
+    let updated = 0;
+
+    mergedMovies.forEach(movie => {
+      if (!movie.title) {
+        skippedInvalid += 1;
+        return;
+      }
+
+      if (movie.rating == null) {
+        skippedUnrated += 1;
+        return;
+      }
+
+      const matchedMovie = findImportedMovieMatch(trackedMovies, movie);
+
+      if (matchedMovie) {
+        if (!hasImportedMovieChanges(matchedMovie, movie)) {
+          skippedDuplicates += 1;
+          return;
+        }
+
+        moviesToUpdate.push({ id: matchedMovie.id, ...movie });
+        applyImportedMovieUpdate(matchedMovie, movie);
+        updated += 1;
+        return;
+      }
+
+      moviesToInsert.push(movie);
+    });
+
+    await syncImportedMovies(moviesToInsert, moviesToUpdate);
+
+    res.status(201).json({
+      totalCandidates: mergedMovies.length,
+      inserted: moviesToInsert.length,
+      updated,
+      skippedUnrated,
+      skippedDuplicates,
+      skippedInvalid,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 router.put('/movies/:id', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
   const { id } = req.params;
 
   if (!title || !rating) {
@@ -159,13 +648,22 @@ router.put('/movies/:id', (req, res) => {
     return;
   }
 
+  const releaseYearError = getReleaseYearValidationError(release_year);
+
+  if (releaseYearError) {
+    res.status(400).json({ error: releaseYearError });
+    return;
+  }
+
+  const normalizedReleaseYear = normalizeReleaseYear(release_year);
+
   const query = `
     UPDATE movies
-    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, type = ?, num_seasons = ?, total_episodes = ?
+    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, release_year = ?, type = ?, num_seasons = ?, total_episodes = ?
     WHERE id = ?
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, type || 'movie', num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, rating, genre, date_watched, notes, director, normalizedReleaseYear, type || 'movie', num_seasons, total_episodes, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -174,7 +672,7 @@ router.put('/movies/:id', (req, res) => {
       res.status(404).json({ error: 'Movie not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, director, type: type || 'movie', num_seasons, total_episodes });
+    res.json({ id, title, rating, genre, date_watched, notes, director, release_year: normalizedReleaseYear, type: type || 'movie', num_seasons, total_episodes });
   });
 });
 

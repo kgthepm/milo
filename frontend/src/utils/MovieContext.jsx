@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { api } from '../api/movieApi';
 
 const MovieContext = createContext();
@@ -8,14 +8,17 @@ export const MovieProvider = ({ children }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const lastFetchParamsRef = useRef({});
 
-  const fetchMovies = async (params = {}) => {
+  const fetchMovies = async (params = lastFetchParamsRef.current) => {
     try {
       setLoading(true);
 
       const cleanParams = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== undefined)
+        Object.entries(params || {}).filter(([_, v]) => v !== undefined)
       );
+
+      lastFetchParamsRef.current = cleanParams;
 
       const data = await api.getMovies({ ...cleanParams, type: 'movie' });
       setMovies(data);
@@ -36,10 +39,14 @@ export const MovieProvider = ({ children }) => {
     }
   };
 
+  const refreshMovies = async () => {
+    await fetchMovies(lastFetchParamsRef.current);
+  };
+
   const addMovie = async (movie) => {
     try {
       await api.addMovie(movie);
-      await fetchMovies();
+      await refreshMovies();
       await fetchAnalytics();
     } catch (err) {
       throw err;
@@ -49,7 +56,7 @@ export const MovieProvider = ({ children }) => {
   const updateMovie = async (id, movie) => {
     try {
       await api.updateMovie(id, movie);
-      await fetchMovies();
+      await refreshMovies();
       await fetchAnalytics();
     } catch (err) {
       throw err;
@@ -59,8 +66,19 @@ export const MovieProvider = ({ children }) => {
   const deleteMovie = async (id) => {
     try {
       await api.deleteMovie(id);
-      await fetchMovies();
+      await refreshMovies();
       await fetchAnalytics();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const importMovies = async (files) => {
+    try {
+      const summary = await api.importMovies(files);
+      await refreshMovies();
+      await fetchAnalytics();
+      return summary;
     } catch (err) {
       throw err;
     }
@@ -81,6 +99,7 @@ export const MovieProvider = ({ children }) => {
       addMovie,
       updateMovie,
       deleteMovie,
+      importMovies,
     }}>
       {children}
     </MovieContext.Provider>
