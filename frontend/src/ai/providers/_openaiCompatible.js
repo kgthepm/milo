@@ -1,5 +1,29 @@
 import { parseRecommendationsJSON } from '../prompt';
 
+async function formatHttpError(res, label) {
+  const status = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
+  const contentType = res.headers.get('content-type') || '';
+  let body = '';
+  try { body = await res.text(); } catch { /* ignore */ }
+  const trimmed = body.trim();
+  const looksHtml = contentType.includes('text/html') || trimmed.startsWith('<');
+  if (looksHtml) {
+    let origin = '';
+    try { origin = new URL(res.url).host; } catch { /* ignore */ }
+    const where = origin ? ` from ${origin}` : '';
+    return `${label}: ${status}${where} (non-JSON response — check Base URL)`;
+  }
+  if (contentType.includes('application/json') || trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const json = JSON.parse(trimmed);
+      const msg = json?.error?.message || json?.error || json?.message;
+      if (msg) return `${label}: ${status} ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
+    } catch { /* fall through */ }
+  }
+  const snippet = trimmed.length > 200 ? trimmed.slice(0, 200) + '…' : trimmed;
+  return snippet ? `${label}: ${status} ${snippet}` : `${label}: ${status}`;
+}
+
 export function createOpenAICompatibleProvider({
   name,
   baseUrl,
@@ -53,7 +77,7 @@ export function createOpenAICompatibleProvider({
         ],
       }),
     });
-    if (!res.ok) throw new Error(`${label}: ${res.status} ${await res.text()}`);
+    if (!res.ok) throw new Error(await formatHttpError(res, label));
     const json = await res.json();
     return json.choices?.[0]?.message?.content || '';
   }
