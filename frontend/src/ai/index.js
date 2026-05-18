@@ -11,11 +11,12 @@ import * as together from './providers/together';
 import * as cerebras from './providers/cerebras';
 import * as fireworks from './providers/fireworks';
 import * as googleai from './providers/googleai';
+import * as custom from './providers/custom';
 import { loadAISettings, getActiveKey } from '../utils/aiSettings';
 
 const REGISTRY = {
   openrouter, anthropic, ollama,
-  zai, deepseek, groq, xai, mistral, together, cerebras, fireworks, googleai,
+  zai, deepseek, groq, xai, mistral, together, cerebras, fireworks, googleai, custom,
 };
 
 export function getProvider(name) {
@@ -27,6 +28,15 @@ export function getProvider(name) {
 function providerCallOpts(settings, extra = {}) {
   if (settings.provider === 'ollama') {
     return { ollamaUrl: settings.ollamaUrl, model: settings.model, ...extra };
+  }
+  if (settings.provider === 'custom') {
+    return {
+      apiKey: getActiveKey(settings),
+      model: settings.model,
+      baseUrl: settings.customBaseUrl,
+      name: settings.customLabel || 'Custom',
+      ...extra,
+    };
   }
   return { apiKey: getActiveKey(settings), model: settings.model, ...extra };
 }

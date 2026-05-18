@@ -16,6 +16,7 @@ const PROVIDER_LABELS = {
   cerebras: 'Cerebras (fast Llama)',
   fireworks: 'Fireworks AI',
   googleai: 'Google AI (Gemini)',
+  custom: 'Custom (OpenAI-compatible URL)',
   ollama: 'Ollama (local / self-hosted)',
 };
 
@@ -31,6 +32,7 @@ const PROVIDER_KEY_LABEL = {
   cerebras: 'Cerebras API key',
   fireworks: 'Fireworks API key',
   googleai: 'Google AI Studio API key',
+  custom: 'API key',
 };
 
 const MODEL_PLACEHOLDERS = {
@@ -45,6 +47,7 @@ const MODEL_PLACEHOLDERS = {
   cerebras: 'llama-3.3-70b',
   fireworks: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
   googleai: 'gemini-2.5-pro',
+  custom: 'glm-4.6',
   ollama: 'qwen2.5:7b',
 };
 
@@ -127,6 +130,30 @@ export default function SettingsModal({ isOpen, onClose }) {
                 ))}
               </select>
             </div>
+
+            {settings.provider === 'custom' && (
+              <>
+                <div>
+                  <label className="block text-white/70 text-sm mb-1">Base URL</label>
+                  <input
+                    type="text" value={settings.customBaseUrl || ''}
+                    onChange={(e) => setSettings((s) => ({ ...s, customBaseUrl: e.target.value }))}
+                    placeholder="https://api.z.ai/api/coding/paas/v4"
+                    className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none font-mono text-sm"
+                  />
+                  <p className="text-white/40 text-xs mt-1">Any OpenAI-compatible endpoint (z.ai coding plan, LM Studio, vLLM, private proxy).</p>
+                </div>
+                <div>
+                  <label className="block text-white/70 text-sm mb-1">Display name (optional)</label>
+                  <input
+                    type="text" value={settings.customLabel || ''}
+                    onChange={(e) => setSettings((s) => ({ ...s, customLabel: e.target.value }))}
+                    placeholder="z.ai Coding Plan"
+                    className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none text-sm"
+                  />
+                </div>
+              </>
+            )}
 
             {settings.provider === 'ollama' ? (
               <div>

@@ -15,8 +15,11 @@ const DEFAULTS = {
     cerebras: '',
     fireworks: '',
     googleai: '',
+    custom: '',
   },
   ollamaUrl: 'http://localhost:11434',
+  customBaseUrl: '',
+  customLabel: '',
 };
 
 export function loadAISettings() {
@@ -55,6 +58,7 @@ export const PROVIDERS = [
   'cerebras',
   'fireworks',
   'googleai',
+  'custom',
   'ollama',
 ];
 
@@ -64,5 +68,5 @@ export const PROVIDER_GROUPS = [
     label: 'Direct providers',
     providers: ['anthropic', 'zai', 'deepseek', 'groq', 'xai', 'mistral', 'together', 'cerebras', 'fireworks', 'googleai'],
   },
-  { label: 'Local', providers: ['ollama'] },
+  { label: 'Custom / Local', providers: ['custom', 'ollama'] },
 ];
