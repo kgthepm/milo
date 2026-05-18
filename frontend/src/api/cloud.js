@@ -2,6 +2,7 @@ import { getSupabase } from '../utils/supabase';
 import { generateRecommendations as aiGenerate, listModels as aiListModels } from '../ai';
 import { loadAISettings } from '../utils/aiSettings';
 import { parseLetterboxdCSV, processLetterboxdRows } from './letterboxdClient';
+import { parseMiloDb, processDbRows } from './dbClient';
 
 const TABLE = 'movies';
 
@@ -191,6 +192,30 @@ export const movieApi = {
     const { data: existing } = await sb.from(TABLE).select('title').eq('type', 'movie').eq('user_id', user_id);
     const existingTitles = new Set((existing || []).map((m) => m.title));
     const result = processLetterboxdRows(rows, existingTitles);
+    if (result.toImport > 0) {
+      const insertRows = result.allMovies.map((m) => ({ ...m, user_id }));
+      const { error } = await sb.from(TABLE).insert(insertRows);
+      if (error) throw new Error(error.message);
+    }
+    return { ...result, imported: result.toImport };
+  },
+
+  async previewDb(file) {
+    const sb = getSupabase();
+    const user_id = await requireUserId();
+    const rows = await parseMiloDb(file);
+    const { data: existing } = await sb.from(TABLE).select('title, type').eq('user_id', user_id);
+    const existingKeys = new Set((existing || []).map((m) => `${m.title} ${m.type === 'tv' ? 'tv' : 'movie'}`));
+    return processDbRows(rows, existingKeys);
+  },
+
+  async importDb(file) {
+    const sb = getSupabase();
+    const user_id = await requireUserId();
+    const rows = await parseMiloDb(file);
+    const { data: existing } = await sb.from(TABLE).select('title, type').eq('user_id', user_id);
+    const existingKeys = new Set((existing || []).map((m) => `${m.title} ${m.type === 'tv' ? 'tv' : 'movie'}`));
+    const result = processDbRows(rows, existingKeys);
     if (result.toImport > 0) {
       const insertRows = result.allMovies.map((m) => ({ ...m, user_id }));
       const { error } = await sb.from(TABLE).insert(insertRows);

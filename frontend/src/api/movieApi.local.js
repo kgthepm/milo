@@ -69,4 +69,26 @@ export const api = {
     if (!response.ok) throw new Error('Failed to import Letterboxd data');
     return response.json();
   },
+
+  async previewDb(file) {
+    const formData = new FormData();
+    formData.append('dbFile', file);
+    const response = await fetch(`${API_BASE}/db/preview`, { method: 'POST', body: formData });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to preview database file');
+    }
+    return response.json();
+  },
+
+  async importDb(file) {
+    const formData = new FormData();
+    formData.append('dbFile', file);
+    const response = await fetch(`${API_BASE}/db/import`, { method: 'POST', body: formData });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to import database file');
+    }
+    return response.json();
+  },
 };

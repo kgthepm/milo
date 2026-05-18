@@ -1,10 +1,20 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileDown, X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Upload, FileDown, X, Check, AlertCircle, Loader2, Database } from 'lucide-react';
 import { api } from '../api/movieApi';
+
+const DB_EXTENSIONS = ['.db', '.sqlite', '.sqlite3'];
+
+function detectKind(filename) {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.csv')) return 'csv';
+  if (DB_EXTENSIONS.some((ext) => lower.endsWith(ext))) return 'db';
+  return null;
+}
 
 export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess }) {
   const [file, setFile] = useState(null);
+  const [kind, setKind] = useState(null);
   const [preview, setPreview] = useState(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -14,21 +24,28 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    if (!selectedFile.name.endsWith('.csv')) {
-      setError('Please select a CSV file');
+    const detected = detectKind(selectedFile.name);
+    if (!detected) {
+      setError('Please select a .csv (Letterboxd) or .db/.sqlite (MILO) file.');
       return;
     }
 
     setFile(selectedFile);
+    setKind(detected);
     setError(null);
     setIsPreviewing(true);
     setPreview(null);
 
     try {
-      const result = await api.previewLetterboxd(selectedFile);
+      const result = detected === 'csv'
+        ? await api.previewLetterboxd(selectedFile)
+        : await api.previewDb(selectedFile);
       setPreview(result);
     } catch (err) {
-      setError('Failed to parse CSV file. Please make sure it\'s a valid Letterboxd export.');
+      const fallback = detected === 'csv'
+        ? "Failed to parse CSV file. Please make sure it's a valid Letterboxd export."
+        : 'Failed to read database file. Please make sure it is a MILO movies.db export.';
+      setError(err.message || fallback);
       console.error('Preview error:', err);
     } finally {
       setIsPreviewing(false);
@@ -42,15 +59,17 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
     setError(null);
 
     try {
-      const result = await api.importLetterboxd(file);
-      
+      const result = kind === 'csv'
+        ? await api.importLetterboxd(file)
+        : await api.importDb(file);
+
       if (onImportSuccess) {
         onImportSuccess(result);
       }
-      
+
       onClose();
     } catch (err) {
-      setError('Failed to import movies. Please try again.');
+      setError(err.message || 'Failed to import. Please try again.');
       console.error('Import error:', err);
     } finally {
       setIsImporting(false);
@@ -59,12 +78,17 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
 
   const handleClose = () => {
     setFile(null);
+    setKind(null);
     setPreview(null);
     setError(null);
     onClose();
   };
 
   if (!isOpen) return null;
+
+  const isDb = kind === 'db';
+  const heading = isDb ? 'Import MILO Database' : 'Import from Letterboxd';
+  const HeadingIcon = isDb ? Database : Upload;
 
   return (
     <motion.div
@@ -84,9 +108,9 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-neon-cyan/20 rounded-lg">
-              <Upload size={24} className="text-neon-cyan" />
+              <HeadingIcon size={24} className="text-neon-cyan" />
             </div>
-            <h2 className="text-2xl font-bold neon-text-cyan">Import from Letterboxd</h2>
+            <h2 className="text-2xl font-bold neon-text-cyan">{heading}</h2>
           </div>
           <button
             onClick={handleClose}
@@ -102,7 +126,7 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
               <input
                 type="file"
                 id="letterboxd-file"
-                accept=".csv"
+                accept=".csv,.db,.sqlite,.sqlite3"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -113,10 +137,10 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
                 <FileDown size={48} className="text-neon-cyan" />
                 <div>
                   <p className="text-white font-semibold text-lg">
-                    Click to select CSV file
+                    Click to select a file
                   </p>
                   <p className="text-white/50 text-sm mt-1">
-                    Select your Letterboxd ratings.csv file
+                    Letterboxd <code>ratings.csv</code> or a MILO <code>movies.db</code> / <code>.sqlite</code> export
                   </p>
                 </div>
               </label>
@@ -125,12 +149,17 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
             <div className="glass rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <FileDown size={20} className="text-neon-cyan" />
+                  {isDb ? (
+                    <Database size={20} className="text-neon-cyan" />
+                  ) : (
+                    <FileDown size={20} className="text-neon-cyan" />
+                  )}
                   <span className="text-white font-medium">{file.name}</span>
                 </div>
                 <button
                   onClick={() => {
                     setFile(null);
+                    setKind(null);
                     setPreview(null);
                     setError(null);
                   }}
@@ -152,7 +181,9 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
           {isPreviewing && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="animate-spin text-neon-cyan" size={32} />
-              <span className="ml-3 text-white/70">Parsing CSV file...</span>
+              <span className="ml-3 text-white/70">
+                {isDb ? 'Reading database file...' : 'Parsing CSV file...'}
+              </span>
             </div>
           )}
 
@@ -160,16 +191,18 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
             <div className="space-y-4">
               <div className="glass rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-white/70">Total movies in CSV</span>
+                  <span className="text-white/70">
+                    {isDb ? 'Total rows in database' : 'Total movies in CSV'}
+                  </span>
                   <span className="text-white font-semibold">{preview.totalInCSV}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-green-400">Movies to import</span>
+                  <span className="text-green-400">{isDb ? 'Entries to import' : 'Movies to import'}</span>
                   <span className="text-green-400 font-semibold">{preview.toImport}</span>
                 </div>
                 {preview.skippedNoRating > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-yellow-400">Skipped (no rating)</span>
+                    <span className="text-yellow-400">Skipped (invalid rating)</span>
                     <span className="text-yellow-400 font-semibold">{preview.skippedNoRating}</span>
                   </div>
                 )}
@@ -183,23 +216,29 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
 
               {preview.preview.length > 0 && (
                 <div>
-                  <h3 className="text-white font-semibold mb-3">Preview (first {preview.preview.length} movies)</h3>
+                  <h3 className="text-white font-semibold mb-3">Preview (first {preview.preview.length})</h3>
                   <div className="glass rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-white/5">
                         <tr>
                           <th className="text-left p-3 text-white/70 text-sm font-medium">Title</th>
+                          {isDb && (
+                            <th className="text-left p-3 text-white/70 text-sm font-medium">Type</th>
+                          )}
                           <th className="text-right p-3 text-white/70 text-sm font-medium">Rating</th>
                           <th className="text-right p-3 text-white/70 text-sm font-medium">Date</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {preview.preview.map((movie, index) => (
+                        {preview.preview.map((row, index) => (
                           <tr key={index} className="border-t border-white/10">
-                            <td className="p-3 text-white">{movie.title}</td>
-                            <td className="p-3 text-right text-neon-cyan font-semibold">{movie.rating}/10</td>
+                            <td className="p-3 text-white">{row.title}</td>
+                            {isDb && (
+                              <td className="p-3 text-white/70 capitalize">{row.type || 'movie'}</td>
+                            )}
+                            <td className="p-3 text-right text-neon-cyan font-semibold">{row.rating}/10</td>
                             <td className="p-3 text-right text-white/70">
-                              {movie.date_watched || 'N/A'}
+                              {row.date_watched || 'N/A'}
                             </td>
                           </tr>
                         ))}
@@ -213,7 +252,7 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
                 <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 flex items-start gap-3">
                   <AlertCircle className="text-yellow-400 mt-0.5 flex-shrink-0" size={20} />
                   <p className="text-yellow-200 text-sm">
-                    No movies can be imported. All movies were skipped due to missing ratings or duplicates.
+                    Nothing to import. All entries were skipped due to invalid ratings or duplicates.
                   </p>
                 </div>
               )}
@@ -241,7 +280,7 @@ export default function LetterboxdImportModal({ isOpen, onClose, onImportSuccess
               ) : (
                 <>
                   <Check size={20} />
-                  <span>Import {preview?.toImport || 0} Movies</span>
+                  <span>Import {preview?.toImport || 0}{isDb ? '' : ' Movies'}</span>
                 </>
               )}
             </button>

@@ -201,7 +201,7 @@ function MoviesPageContent() {
               <button
                 onClick={() => setShowImportModal(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-                title="Import from Letterboxd"
+                title="Import from Letterboxd CSV or MILO .db"
               >
                 <Upload size={20} />
                 <span className="hidden sm:inline">Import</span>
