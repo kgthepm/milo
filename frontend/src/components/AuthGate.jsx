@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, Sparkles, LogOut } from 'lucide-react';
+import { LogIn, Mail, Lock, Sparkles } from 'lucide-react';
 import { IS_CLOUD } from '../utils/mode';
 import { getSupabase } from '../utils/supabase';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AuthGate({ children }) {
   if (!IS_CLOUD) return children;
@@ -18,17 +19,32 @@ function CloudAuthGate({ children }) {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [info, setInfo] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
     let sb;
     try { sb = getSupabase(); } catch (e) { setError(e.message); setLoading(false); return; }
     sb.auth.getSession().then(({ data }) => {
-      if (mounted) { setSession(data.session); setLoading(false); }
+      if (mounted) {
+        setSession(data.session);
+        setLoading(false);
+        if (data.session && (location.pathname === '/landing' || location.pathname === '/')) {
+          navigate('/');
+        }
+      }
     });
-    const { data: sub } = sb.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
+      if (mounted) {
+        setSession(s);
+        if (s && (location.pathname === '/landing' || location.pathname === '/')) {
+          navigate('/');
+        }
+      }
+    });
     return () => { mounted = false; sub.subscription?.unsubscribe(); };
-  }, []);
+  }, [location.pathname, navigate]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -49,6 +65,12 @@ function CloudAuthGate({ children }) {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (session && mode === 'signin') {
+      navigate('/');
+    }
+  }, [session, mode, navigate]);
 
   if (loading) {
     return (
@@ -109,16 +131,5 @@ function CloudAuthGate({ children }) {
     );
   }
 
-  return (
-    <>
-      {children}
-      <button
-        onClick={async () => { await getSupabase().auth.signOut(); }}
-        title="Sign out"
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-lg bg-black/60 border border-white/10 hover:bg-black/80 text-white/70 text-xs"
-      >
-        <LogOut size={14}/> Sign out
-      </button>
-    </>
-  );
+  return <>{children}</>;
 }
