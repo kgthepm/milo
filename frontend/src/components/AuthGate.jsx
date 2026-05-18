@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LogIn, Mail, Lock, Sparkles } from 'lucide-react';
 import { IS_CLOUD } from '../utils/mode';
@@ -21,30 +21,33 @@ function CloudAuthGate({ children }) {
   const [info, setInfo] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const pathRef = useRef(location.pathname);
+  useEffect(() => { pathRef.current = location.pathname; }, [location.pathname]);
 
   useEffect(() => {
     let mounted = true;
     let sb;
     try { sb = getSupabase(); } catch (e) { setError(e.message); setLoading(false); return; }
-    sb.auth.getSession().then(({ data }) => {
-      if (mounted) {
-        setSession(data.session);
-        setLoading(false);
-        if (data.session && (location.pathname === '/landing' || location.pathname === '/')) {
-          navigate('/');
-        }
+
+    const maybeRedirect = (s) => {
+      if (s && (pathRef.current === '/landing' || pathRef.current === '/')) {
+        navigate('/');
       }
+    };
+
+    sb.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setLoading(false);
+      maybeRedirect(data.session);
     });
     const { data: sub } = sb.auth.onAuthStateChange((_event, s) => {
-      if (mounted) {
-        setSession(s);
-        if (s && (location.pathname === '/landing' || location.pathname === '/')) {
-          navigate('/');
-        }
-      }
+      if (!mounted) return;
+      setSession(s);
+      maybeRedirect(s);
     });
     return () => { mounted = false; sub.subscription?.unsubscribe(); };
-  }, [location.pathname, navigate]);
+  }, [navigate]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -65,12 +68,6 @@ function CloudAuthGate({ children }) {
       setSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (session && mode === 'signin') {
-      navigate('/');
-    }
-  }, [session, mode, navigate]);
 
   if (loading) {
     return (
