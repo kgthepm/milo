@@ -7,6 +7,7 @@ const DEFAULTS = {
     openrouter: '',
     anthropic: '',
     zai: '',
+    zaiCoding: '',
     deepseek: '',
     groq: '',
     xai: '',
@@ -50,6 +51,7 @@ export const PROVIDERS = [
   'openrouter',
   'anthropic',
   'zai',
+  'zaiCoding',
   'deepseek',
   'groq',
   'xai',
@@ -66,7 +68,7 @@ export const PROVIDER_GROUPS = [
   { label: 'Aggregator', providers: ['openrouter'] },
   {
     label: 'Direct providers',
-    providers: ['anthropic', 'zai', 'deepseek', 'groq', 'xai', 'mistral', 'together', 'cerebras', 'fireworks', 'googleai'],
+    providers: ['anthropic', 'zai', 'zaiCoding', 'deepseek', 'groq', 'xai', 'mistral', 'together', 'cerebras', 'fireworks', 'googleai'],
   },
   { label: 'Custom / Local', providers: ['custom', 'ollama'] },
 ];

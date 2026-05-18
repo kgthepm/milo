@@ -3,6 +3,7 @@ import * as openrouter from './providers/openrouter';
 import * as anthropic from './providers/anthropic';
 import * as ollama from './providers/ollama';
 import * as zai from './providers/zai';
+import * as zaiCoding from './providers/zaiCoding';
 import * as deepseek from './providers/deepseek';
 import * as groq from './providers/groq';
 import * as xai from './providers/xai';
@@ -16,7 +17,7 @@ import { loadAISettings, getActiveKey } from '../utils/aiSettings';
 
 const REGISTRY = {
   openrouter, anthropic, ollama,
-  zai, deepseek, groq, xai, mistral, together, cerebras, fireworks, googleai, custom,
+  zai, zaiCoding, deepseek, groq, xai, mistral, together, cerebras, fireworks, googleai, custom,
 };
 
 export function getProvider(name) {

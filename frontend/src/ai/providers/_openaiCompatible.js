@@ -1,5 +1,14 @@
 import { parseRecommendationsJSON } from '../prompt';
 
+function normalizeBaseUrl(url, label) {
+  if (!url) throw new Error(`${label} base URL required.`);
+  const trimmed = String(url).trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(trimmed)) {
+    throw new Error(`${label}: Base URL must start with http:// or https:// (got "${url}")`);
+  }
+  return trimmed;
+}
+
 async function formatHttpError(res, label) {
   const status = `${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
   const contentType = res.headers.get('content-type') || '';
@@ -40,10 +49,9 @@ export function createOpenAICompatibleProvider({
   }
 
   async function listModels({ apiKey, signal, baseUrl: baseUrlOverride, name: nameOverride } = {}) {
-    const url = baseUrlOverride || baseUrl;
     const label = nameOverride || name;
     if (!apiKey) throw new Error(`${label} API key required.`);
-    if (!url) throw new Error(`${label} base URL required.`);
+    const url = normalizeBaseUrl(baseUrlOverride || baseUrl, label);
     try {
       const res = await fetch(`${url}${modelsPath}`, { headers: authHeaders(apiKey), signal });
       if (!res.ok) return [...defaultModels];
@@ -58,10 +66,9 @@ export function createOpenAICompatibleProvider({
   }
 
   async function chat({ apiKey, model, systemPrompt, userPrompt, signal, maxTokens = 1200, baseUrl: baseUrlOverride, name: nameOverride }) {
-    const url = baseUrlOverride || baseUrl;
     const label = nameOverride || name;
     if (!apiKey) throw new Error(`${label} API key required.`);
-    if (!url) throw new Error(`${label} base URL required.`);
+    const url = normalizeBaseUrl(baseUrlOverride || baseUrl, label);
     if (!model) throw new Error('Pick a model from the dropdown.');
     const res = await fetch(`${url}/chat/completions`, {
       method: 'POST',
