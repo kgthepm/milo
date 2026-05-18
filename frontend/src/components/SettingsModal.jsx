@@ -1,18 +1,51 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, X, Save, Eye, EyeOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { loadAISettings, saveAISettings, PROVIDERS } from '../utils/aiSettings';
+import { loadAISettings, saveAISettings, PROVIDER_GROUPS } from '../utils/aiSettings';
 import { listModels } from '../ai';
 
 const PROVIDER_LABELS = {
   openrouter: 'OpenRouter (100+ models, one key)',
   anthropic: 'Anthropic (Claude direct)',
+  zai: 'z.ai (GLM-4.6, GLM-4.5)',
+  deepseek: 'DeepSeek (Chat, Reasoner)',
+  groq: 'Groq (fast Llama / Mixtral)',
+  xai: 'xAI (Grok)',
+  mistral: 'Mistral (Large, Codestral)',
+  together: 'Together AI',
+  cerebras: 'Cerebras (fast Llama)',
+  fireworks: 'Fireworks AI',
+  googleai: 'Google AI (Gemini)',
   ollama: 'Ollama (local / self-hosted)',
 };
 
 const PROVIDER_KEY_LABEL = {
   openrouter: 'OpenRouter API key',
   anthropic: 'Anthropic API key',
+  zai: 'z.ai API key',
+  deepseek: 'DeepSeek API key',
+  groq: 'Groq API key',
+  xai: 'xAI API key',
+  mistral: 'Mistral API key',
+  together: 'Together API key',
+  cerebras: 'Cerebras API key',
+  fireworks: 'Fireworks API key',
+  googleai: 'Google AI Studio API key',
+};
+
+const MODEL_PLACEHOLDERS = {
+  openrouter: 'anthropic/claude-3.5-sonnet',
+  anthropic: 'claude-sonnet-4-6',
+  zai: 'glm-4.6',
+  deepseek: 'deepseek-chat',
+  groq: 'llama-3.3-70b-versatile',
+  xai: 'grok-4',
+  mistral: 'mistral-large-latest',
+  together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  cerebras: 'llama-3.3-70b',
+  fireworks: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+  googleai: 'gemini-2.5-pro',
+  ollama: 'qwen2.5:7b',
 };
 
 export default function SettingsModal({ isOpen, onClose }) {
@@ -85,8 +118,12 @@ export default function SettingsModal({ isOpen, onClose }) {
                 onChange={(e) => updateProvider(e.target.value)}
                 className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none"
               >
-                {PROVIDERS.map((p) => (
-                  <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+                {PROVIDER_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.providers.map((p) => (
+                      <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -141,10 +178,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 <input
                   type="text" value={settings.model}
                   onChange={(e) => setSettings((s) => ({ ...s, model: e.target.value }))}
-                  placeholder={
-                    settings.provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' :
-                    settings.provider === 'anthropic' ? 'claude-sonnet-4-6' : 'qwen2.5:7b'
-                  }
+                  placeholder={MODEL_PLACEHOLDERS[settings.provider] || ''}
                   className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none font-mono text-sm"
                 />
               )}

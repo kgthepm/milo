@@ -6,6 +6,15 @@ const DEFAULTS = {
   keys: {
     openrouter: '',
     anthropic: '',
+    zai: '',
+    deepseek: '',
+    groq: '',
+    xai: '',
+    mistral: '',
+    together: '',
+    cerebras: '',
+    fireworks: '',
+    googleai: '',
   },
   ollamaUrl: 'http://localhost:11434',
 };
@@ -34,4 +43,26 @@ export function getActiveKey(settings) {
   return settings.keys?.[settings.provider] || '';
 }
 
-export const PROVIDERS = ['openrouter', 'anthropic', 'ollama'];
+export const PROVIDERS = [
+  'openrouter',
+  'anthropic',
+  'zai',
+  'deepseek',
+  'groq',
+  'xai',
+  'mistral',
+  'together',
+  'cerebras',
+  'fireworks',
+  'googleai',
+  'ollama',
+];
+
+export const PROVIDER_GROUPS = [
+  { label: 'Aggregator', providers: ['openrouter'] },
+  {
+    label: 'Direct providers',
+    providers: ['anthropic', 'zai', 'deepseek', 'groq', 'xai', 'mistral', 'together', 'cerebras', 'fireworks', 'googleai'],
+  },
+  { label: 'Local', providers: ['ollama'] },
+];

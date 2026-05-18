@@ -2,9 +2,21 @@ import { buildRecommendationPrompt, buildAssistantPrompt } from './prompt';
 import * as openrouter from './providers/openrouter';
 import * as anthropic from './providers/anthropic';
 import * as ollama from './providers/ollama';
+import * as zai from './providers/zai';
+import * as deepseek from './providers/deepseek';
+import * as groq from './providers/groq';
+import * as xai from './providers/xai';
+import * as mistral from './providers/mistral';
+import * as together from './providers/together';
+import * as cerebras from './providers/cerebras';
+import * as fireworks from './providers/fireworks';
+import * as googleai from './providers/googleai';
 import { loadAISettings, getActiveKey } from '../utils/aiSettings';
 
-const REGISTRY = { openrouter, anthropic, ollama };
+const REGISTRY = {
+  openrouter, anthropic, ollama,
+  zai, deepseek, groq, xai, mistral, together, cerebras, fireworks, googleai,
+};
 
 export function getProvider(name) {
   const p = REGISTRY[name];
