@@ -12,7 +12,6 @@ import Timeline from '../components/movies/Timeline';
 import Recommendations from '../components/movies/Recommendations';
 import Stats from '../components/shared/Stats';
 import TopNav from '../components/shared/TopNav';
-import HeaderActions from '../components/shared/HeaderActions';
 
 function MoviesPageContent() {
   const { movies, analytics, loading, error, fetchMovies, fetchAnalytics } = useMovies();
@@ -213,7 +212,6 @@ function MoviesPageContent() {
                 <Plus size={20} />
                 <span className="hidden sm:inline">Add Movie</span>
               </button>
-              <HeaderActions />
             </div>
           </div>
         </motion.header>
