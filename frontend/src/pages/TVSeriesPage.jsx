@@ -10,6 +10,7 @@ import GenreFilter from '../components/shared/GenreFilter';
 import TVRecommendations from '../components/tv/TVRecommendations';
 import Stats from '../components/shared/Stats';
 import TopNav from '../components/shared/TopNav';
+import HeaderActions from '../components/shared/HeaderActions';
 
 function TVSeriesPageContent() {
   const { series, analytics, loading, error, fetchSeries } = useTVSeries();
@@ -206,6 +207,7 @@ function TVSeriesPageContent() {
                 <Plus size={20} />
                 <span className="hidden sm:inline">Add TV Series</span>
               </button>
+              <HeaderActions />
             </div>
           </div>
         </motion.header>
