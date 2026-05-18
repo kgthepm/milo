@@ -46,8 +46,7 @@ Decisions (locked in):
 
 1. Netlify → **Add new site → Import from Git** → point at this repo with:
    - **Base directory:** `frontend`
-   - **Build command:** `npm run build`
-   - **Publish directory:** `frontend/dist`
+   - Build command and publish directory come from `frontend/netlify.toml` (which also adds the SPA `/* → /index.html` redirect — without that file, the deploy 404s).
 2. **Site settings → Environment variables**, add three:
    - `VITE_MILO_MODE=cloud`
    - `VITE_SUPABASE_URL=<from step A.4>`
