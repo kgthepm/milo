@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, RefreshCw, Filter, Loader2, AlertCircle, Play } from 'lucide-react';
+import { Sparkles, RefreshCw, Filter, Loader2, AlertCircle, Play, Settings as SettingsIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { api as movieApi } from '../../api/movieApi';
 import { tvApi } from '../../api/tvApi';
+import { IS_CLOUD } from '../../utils/mode';
+import { loadAISettings, getActiveKey } from '../../utils/aiSettings';
 
 function pickBestModel(list) {
   if (!list || list.length === 0) return '';
@@ -25,6 +27,7 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
   const [modelsError, setModelsError] = useState(null);
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
+  const [cloudSettings, setCloudSettings] = useState(() => (IS_CLOUD ? loadAISettings() : null));
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,10 +62,18 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
   };
 
   useEffect(() => {
+    if (IS_CLOUD) return;
     if (hasStarted && models.length === 0 && !modelsLoading && !modelsError) {
       loadModels();
     }
   }, [hasStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!IS_CLOUD) return;
+    const refresh = () => setCloudSettings(loadAISettings());
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
 
   const fetchRecommendations = async (refresh = false) => {
     if (refresh) setRefreshing(true); else setLoading(true);
@@ -73,7 +84,8 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
         content: contentType,
         refresh: refresh.toString(),
       };
-      if (selectedModel) params.model = selectedModel;
+      const effectiveModel = IS_CLOUD ? cloudSettings?.model : selectedModel;
+      if (effectiveModel) params.model = effectiveModel;
       const response = await api.getRecommendations(params);
       setRecommendations(response.recommendations || []);
       setSource(response.source || 'simple');
@@ -104,7 +116,8 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
     return rec.type === filter;
   });
 
-  const canGenerate = !!selectedModel && !loading && !refreshing;
+  const cloudReady = IS_CLOUD && cloudSettings && cloudSettings.model && (cloudSettings.provider === 'ollama' || !!getActiveKey(cloudSettings));
+  const canGenerate = IS_CLOUD ? (cloudReady && !loading && !refreshing) : (!!selectedModel && !loading && !refreshing);
 
   if (!hasStarted) {
     return (
@@ -173,18 +186,27 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
           <option value="similar">Similar to Favorites</option>
           <option value="hidden_gems">Hidden Gems</option>
         </select>
-        <select
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
-          disabled={modelsLoading || models.length === 0}
-          className="bg-black/30 text-white rounded-lg px-3 py-1.5 text-sm border border-white/10 focus:border-white/30 outline-none disabled:opacity-50"
-        >
-          {modelsLoading && <option value="">Loading models…</option>}
-          {!modelsLoading && models.length === 0 && <option value="">No models available</option>}
-          {models.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        {IS_CLOUD ? (
+          <div className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-1.5 text-sm border border-white/10">
+            <SettingsIcon size={14} className="text-white/50" />
+            <span className="text-white/70">
+              {cloudSettings?.provider || 'no provider'} · {cloudSettings?.model || 'no model'}
+            </span>
+          </div>
+        ) : (
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={modelsLoading || models.length === 0}
+            className="bg-black/30 text-white rounded-lg px-3 py-1.5 text-sm border border-white/10 focus:border-white/30 outline-none disabled:opacity-50"
+          >
+            {modelsLoading && <option value="">Loading models…</option>}
+            {!modelsLoading && models.length === 0 && <option value="">No models available</option>}
+            {models.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        )}
         <button
           onClick={handleGenerate}
           disabled={!canGenerate}
@@ -194,6 +216,15 @@ export default function EnhancedRecommendations({ contentType = 'movie' }) {
           {hasGenerated ? 'Generate Again' : 'Generate'}
         </button>
       </div>
+
+      {IS_CLOUD && !cloudReady && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+          <AlertCircle size={14} className="text-yellow-300 shrink-0 mt-0.5" />
+          <span className="text-yellow-200 text-sm">
+            Open <strong>Settings</strong> (top-right gear) and add an API key + pick a model to enable recommendations.
+          </span>
+        </div>
+      )}
 
       {modelsError && (
         <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-red-500/10 rounded-lg border border-red-500/20">

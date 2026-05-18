@@ -1,14 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Film, Tv } from 'lucide-react';
+import { Film, Tv, Settings as SettingsIcon } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AssistantModal from './AssistantModal';
+import SettingsModal from '../SettingsModal';
 import miloIcon from '/milo-ai-icon.jpeg';
 
 export default function TopNav() {
   const location = useLocation();
   const isMovies = location.pathname === '/' || location.pathname === '/movies';
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const messages = [
     "Chat with MILO",
@@ -57,6 +59,13 @@ export default function TopNav() {
           <Tv size={18} />
           TV Series
         </Link>
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="ml-auto flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all"
+          title="AI settings (BYOK)"
+        >
+          <SettingsIcon size={18} />
+        </button>
       </nav>
 
       <AnimatePresence>
@@ -85,6 +94,7 @@ export default function TopNav() {
       </motion.button>
 
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }

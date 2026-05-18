@@ -1,0 +1,225 @@
+import { getSupabase } from '../utils/supabase';
+import { generateRecommendations as aiGenerate, listModels as aiListModels } from '../ai';
+import { loadAISettings } from '../utils/aiSettings';
+import { parseLetterboxdCSV, processLetterboxdRows } from './letterboxdClient';
+
+const TABLE = 'movies';
+
+async function requireUserId() {
+  const sb = getSupabase();
+  const { data, error } = await sb.auth.getUser();
+  if (error || !data?.user) throw new Error('Not signed in.');
+  return data.user.id;
+}
+
+function applyFilters(query, params) {
+  const { search, genre, minRating, maxRating, startDate, endDate, type } = params;
+  if (type) query = query.eq('type', type);
+  if (genre) query = query.eq('genre', genre);
+  if (minRating !== undefined && minRating !== null && minRating !== '') query = query.gte('rating', Number(minRating));
+  if (maxRating !== undefined && maxRating !== null && maxRating !== '') query = query.lte('rating', Number(maxRating));
+  if (startDate) query = query.gte('date_watched', startDate);
+  if (endDate) query = query.lte('date_watched', endDate);
+  if (search) query = query.or(`title.ilike.%${search}%,notes.ilike.%${search}%`);
+  return query;
+}
+
+function applySort(query, sortBy) {
+  switch (sortBy) {
+    case 'highest_rated':
+      return query.order('rating', { ascending: false, nullsFirst: false }).order('date_watched', { ascending: false, nullsFirst: false });
+    case 'lowest_rated':
+      return query.order('rating', { ascending: true, nullsFirst: false }).order('date_watched', { ascending: false, nullsFirst: false });
+    case 'title_asc':
+      return query.order('title', { ascending: true });
+    case 'title_desc':
+      return query.order('title', { ascending: false });
+    case 'most_recent':
+    default:
+      return query.order('date_watched', { ascending: false, nullsFirst: false });
+  }
+}
+
+async function listRows(params = {}) {
+  const sb = getSupabase();
+  let q = sb.from(TABLE).select('*');
+  q = applyFilters(q, params);
+  q = applySort(q, params.sortBy);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+function computeAnalytics(rows, contentType) {
+  const total = rows.length;
+  const ratings = rows.map((r) => r.rating).filter((r) => typeof r === 'number');
+  const avgRating = ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100 : 0;
+
+  const genreCounts = {};
+  rows.forEach((r) => {
+    if (r.genre) genreCounts[r.genre] = (genreCounts[r.genre] || 0) + 1;
+  });
+  const genreData = Object.entries(genreCounts)
+    .map(([genre, count]) => ({ genre, count }))
+    .sort((a, b) => b.count - a.count);
+  const topGenres = genreData.slice(0, 5);
+
+  const timelineMap = {};
+  rows.forEach((r) => {
+    if (r.date_watched) timelineMap[r.date_watched] = (timelineMap[r.date_watched] || 0) + 1;
+  });
+  const timeline = Object.entries(timelineMap)
+    .map(([date_watched, count]) => ({ date_watched, count }))
+    .sort((a, b) => (a.date_watched < b.date_watched ? 1 : -1));
+
+  const recommendations = topGenres[0]
+    ? {
+        favoriteGenre: topGenres[0].genre,
+        suggestions: `Explore more ${topGenres[0].genre} — your favorite so far.`,
+        message: `Based on your love for ${topGenres[0].genre} ${contentType === 'tv' ? 'TV series' : 'movies'}:`,
+      }
+    : { message: `Add more ${contentType === 'tv' ? 'TV series' : 'movies'} to get personalized recommendations!` };
+
+  return { total, avgRating, topGenres, timeline, recommendations };
+}
+
+export const movieApi = {
+  async getMovies(params = {}) {
+    return listRows({ ...params, type: params.type || 'movie' });
+  },
+
+  async addMovie(movie) {
+    const sb = getSupabase();
+    const user_id = await requireUserId();
+    const payload = { ...movie, type: movie.type || 'movie', user_id };
+    const { data, error } = await sb.from(TABLE).insert(payload).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async updateMovie(id, movie) {
+    const sb = getSupabase();
+    const payload = { ...movie, type: movie.type || 'movie' };
+    delete payload.id;
+    delete payload.user_id;
+    delete payload.created_at;
+    const { data, error } = await sb.from(TABLE).update(payload).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async deleteMovie(id) {
+    const sb = getSupabase();
+    const { error } = await sb.from(TABLE).delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return { message: 'Movie deleted successfully' };
+  },
+
+  async getAnalytics(params = {}) {
+    const rows = await listRows({ type: params.type });
+    return computeAnalytics(rows, params.type || 'movie');
+  },
+
+  async getRecommendations(params = {}) {
+    const { type = 'all', content = 'movie', model } = params;
+    const settings = loadAISettings();
+    if (model) settings.model = model;
+
+    const contentTypes = content === 'all' ? ['movie', 'tv'] : [content];
+    const recTypes = type === 'all' ? ['similar', 'hidden_gems'] : [type];
+
+    const rowsByType = {};
+    for (const ct of contentTypes) rowsByType[ct] = await listRows({ type: ct });
+
+    const allRecs = [];
+    let lastError = null;
+    for (const recType of recTypes) {
+      for (const ct of contentTypes) {
+        try {
+          const recs = await aiGenerate({
+            userMovies: rowsByType[ct],
+            type: recType,
+            contentType: ct,
+            settings,
+          });
+          recs.forEach((r) => allRecs.push({ ...r, type: recType, contentType: ct, cached: false }));
+        } catch (e) {
+          lastError = e;
+          console.error(`AI failed for ${ct}/${recType}:`, e.message);
+        }
+      }
+    }
+
+    if (allRecs.length) {
+      return {
+        recommendations: allRecs,
+        source: 'ai',
+        message: 'AI-powered recommendations based on your viewing history',
+      };
+    }
+    return {
+      recommendations: [],
+      source: 'simple',
+      message: lastError ? 'AI recommendations failed — see details below.' : 'No recommendations yet.',
+      aiErrorMessage: lastError ? lastError.message : null,
+    };
+  },
+
+  async getOllamaModels() {
+    try {
+      const settings = loadAISettings();
+      const models = await aiListModels({ ...settings, provider: 'ollama' });
+      return { models };
+    } catch (e) {
+      return { models: [], error: e.message };
+    }
+  },
+
+  async previewLetterboxd(file) {
+    const sb = getSupabase();
+    const user_id = await requireUserId();
+    const rows = await parseLetterboxdCSV(file);
+    const { data: existing } = await sb.from(TABLE).select('title').eq('type', 'movie').eq('user_id', user_id);
+    const existingTitles = new Set((existing || []).map((m) => m.title));
+    return processLetterboxdRows(rows, existingTitles);
+  },
+
+  async importLetterboxd(file) {
+    const sb = getSupabase();
+    const user_id = await requireUserId();
+    const rows = await parseLetterboxdCSV(file);
+    const { data: existing } = await sb.from(TABLE).select('title').eq('type', 'movie').eq('user_id', user_id);
+    const existingTitles = new Set((existing || []).map((m) => m.title));
+    const result = processLetterboxdRows(rows, existingTitles);
+    if (result.toImport > 0) {
+      const insertRows = result.allMovies.map((m) => ({ ...m, user_id }));
+      const { error } = await sb.from(TABLE).insert(insertRows);
+      if (error) throw new Error(error.message);
+    }
+    return { ...result, imported: result.toImport };
+  },
+};
+
+export const tvApi = {
+  getSeries: (params = {}) => listRows({ ...params, type: 'tv' }),
+  addSeries: (series) => movieApi.addMovie({ ...series, type: 'tv' }),
+  updateSeries: (id, series) => movieApi.updateMovie(id, { ...series, type: 'tv' }),
+  deleteSeries: (id) => movieApi.deleteMovie(id),
+  getAnalytics: async () => {
+    const rows = await listRows({ type: 'tv' });
+    return computeAnalytics(rows, 'tv');
+  },
+  getRecommendations: (params = {}) => movieApi.getRecommendations({ ...params, content: 'tv' }),
+};
+
+export const assistantApi = {
+  async chatWithAssistant(message, model = null, movies = [], tvSeries = [], analytics = null) {
+    const { chatAssistant } = await import('../ai');
+    const settings = loadAISettings();
+    if (model) settings.model = model;
+    return chatAssistant({ message, movies, tvSeries, analytics, settings });
+  },
+  async getOllamaModels() {
+    return movieApi.getOllamaModels();
+  },
+};

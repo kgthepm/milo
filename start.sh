@@ -1,5 +1,11 @@
 #!/bin/bash
 
+cd "$(dirname "$(readlink -f "$0")")" || {
+    echo "❌ Could not cd to script directory"
+    read -n 1 -s -r -p "Press any key to exit..."
+    exit 1
+}
+
 echo "🎬 Starting MILO..."
 echo ""
 
