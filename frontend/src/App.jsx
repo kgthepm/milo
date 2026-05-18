@@ -6,16 +6,16 @@ import AuthGate from './components/AuthGate';
 
 function App() {
   return (
-    <AuthGate>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthGate>
         <Routes>
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/" element={<MoviesPage />} />
           <Route path="/movies" element={<MoviesPage />} />
           <Route path="/tv" element={<TVSeriesPage />} />
         </Routes>
-      </BrowserRouter>
-    </AuthGate>
+      </AuthGate>
+    </BrowserRouter>
   );
 }
 
