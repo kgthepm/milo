@@ -1,50 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Film, Tv, Settings as SettingsIcon, LogOut, LogIn } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Film, Tv } from 'lucide-react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AssistantModal from './AssistantModal';
-import SettingsModal from '../SettingsModal';
 import miloIcon from '/milo-ai-icon.jpeg';
-import { IS_CLOUD } from '../../utils/mode';
-import { getSupabase } from '../../utils/supabase';
 
 export default function TopNav() {
   const location = useLocation();
   const isMovies = location.pathname === '/' || location.pathname === '/movies';
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [session, setSession] = useState(null);
-
-  useEffect(() => {
-    if (!IS_CLOUD) return;
-
-    let mounted = true;
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await getSupabase().auth.getSession();
-        if (mounted) setSession(session);
-      } catch (e) {
-        console.error('Session check failed:', e);
-      }
-    };
-
-    checkSession();
-
-    const { data: sub } = getSupabase().auth.onAuthStateChange((_event, s) => {
-      if (mounted) setSession(s);
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription?.unsubscribe();
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    if (IS_CLOUD) {
-      await getSupabase().auth.signOut();
-    }
-  };
 
   const messages = [
     "Chat with MILO",
@@ -93,36 +57,6 @@ export default function TopNav() {
           <Tv size={18} />
           TV Series
         </Link>
-        {IS_CLOUD && (
-          <>
-            {session ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all"
-                title="Sign out"
-              >
-                <LogOut size={18} />
-                <span className="hidden sm:inline">Sign out</span>
-              </button>
-            ) : (
-              <Link
-                to="/landing"
-                className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-neon-cyan hover:text-cyan-300 hover:bg-white/5 transition-all"
-                title="Sign in"
-              >
-                <LogIn size={18} />
-                <span className="hidden sm:inline">Sign in</span>
-              </Link>
-            )}
-          </>
-        )}
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="flex items-center gap-2 px-4 py-3 rounded-lg font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all"
-          title="AI settings (BYOK)"
-        >
-          <SettingsIcon size={18} />
-        </button>
       </nav>
 
       <AnimatePresence>
@@ -151,7 +85,6 @@ export default function TopNav() {
       </motion.button>
 
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }
