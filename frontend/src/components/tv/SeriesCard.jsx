@@ -46,17 +46,17 @@ export default function SeriesCard({ series, onEdit }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      className={`glass rounded-xl p-5 border ${genreClass} transition-all duration-300`}
+      className={`glass rounded-xl p-4 sm:p-5 border ${genreClass} transition-all duration-300`}
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2 flex-1">
           <Tv size={18} className="text-neon-magenta flex-shrink-0" />
-          <h3 className="text-xl font-bold text-white line-clamp-2">{series.title}</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-white line-clamp-2">{series.title}</h3>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex gap-1 sm:gap-2 flex-shrink-0">
           <button
             onClick={() => onEdit(series)}
-            className="text-white/60 hover:text-neon-magenta transition-colors"
+            className="p-2 sm:p-1.5 text-white/60 hover:text-neon-magenta transition-colors"
             title="Edit"
           >
             <Edit size={18} />
@@ -64,7 +64,7 @@ export default function SeriesCard({ series, onEdit }) {
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="text-white/60 hover:text-red-400 transition-colors disabled:opacity-50"
+            className="p-2 sm:p-1.5 text-white/60 hover:text-red-400 transition-colors disabled:opacity-50"
             title="Delete"
           >
             <Trash2 size={18} />

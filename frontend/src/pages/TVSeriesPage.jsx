@@ -11,6 +11,7 @@ import TVRecommendations from '../components/tv/TVRecommendations';
 import Stats from '../components/shared/Stats';
 import TopNav from '../components/shared/TopNav';
 import HeaderActions from '../components/shared/HeaderActions';
+import MobileButtonStack from '../components/shared/MobileButtonStack';
 
 function TVSeriesPageContent() {
   const { series, analytics, loading, error, fetchSeries } = useTVSeries();
@@ -177,7 +178,7 @@ function TVSeriesPageContent() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-1 flex items-center flex-wrap">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 flex items-center flex-wrap">
                 <span className="neon-text-magenta">MI</span>
                 <span className="neon-text-cyan">LO</span>
                 <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
@@ -189,10 +190,17 @@ function TVSeriesPageContent() {
               </div>
               <p className="text-white/60">Track, discover, and analyze your TV series journey</p>
             </div>
-            <div className="flex gap-3">
+            <MobileButtonStack className="gap-2 sm:gap-3 sm:flex-row">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-neon-magenta/20 border border-neon-magenta/50 text-neon-magenta font-semibold hover:bg-neon-magenta/30 transition-all neon-text-magenta"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Add TV Series</span>
+              </button>
               <motion.button
                 onClick={() => fetchSeries({ ...filterParams, sortBy })}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
                 whileHover={{ rotate: 180 }}
                 transition={{ duration: 0.3 }}
                 title="Refresh TV series"
@@ -200,15 +208,10 @@ function TVSeriesPageContent() {
                 <RefreshCw size={20} />
                 <span className="hidden sm:inline">Refresh</span>
               </motion.button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neon-magenta/20 border border-neon-magenta/50 text-neon-magenta font-semibold hover:bg-neon-magenta/30 transition-all neon-text-magenta"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add TV Series</span>
-              </button>
-              <HeaderActions />
-            </div>
+              <div className="flex justify-center sm:justify-start">
+                <HeaderActions />
+              </div>
+            </MobileButtonStack>
           </div>
         </motion.header>
 
@@ -216,11 +219,11 @@ function TVSeriesPageContent() {
 
         <Stats analytics={analytics} type="tv" />
 
-        <motion.div className="mb-8 p-1 glass rounded-xl">
+        <motion.div className="mb-6 sm:mb-8 p-1 glass rounded-xl">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('series')}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'series'
                   ? 'bg-gradient-to-r from-neon-magenta/20 to-neon-purple/20 text-neon-magenta neon-border-magenta'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -230,7 +233,7 @@ function TVSeriesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('recommendations')}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'recommendations'
                   ? 'bg-gradient-to-r from-neon-magenta/20 to-neon-purple/20 text-neon-magenta neon-border-magenta'
                   : 'text-white/70 hover:text-white hover:bg-white/5'

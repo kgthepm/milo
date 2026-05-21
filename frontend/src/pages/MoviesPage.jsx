@@ -13,6 +13,7 @@ import Recommendations from '../components/movies/Recommendations';
 import Stats from '../components/shared/Stats';
 import TopNav from '../components/shared/TopNav';
 import HeaderActions from '../components/shared/HeaderActions';
+import MobileButtonStack from '../components/shared/MobileButtonStack';
 
 function MoviesPageContent() {
   const { movies, analytics, loading, error, fetchMovies, fetchAnalytics } = useMovies();
@@ -180,17 +181,32 @@ function MoviesPageContent() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2 flex items-center flex-wrap">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 flex items-center flex-wrap">
                 <span className="neon-text-cyan">MI</span>
                 <span className="neon-text-magenta">LO</span>
                 <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
               </h1>
               <p className="text-white/60">Track, discover, and analyze your movie journey</p>
             </div>
-            <div className="flex gap-3">
+            <MobileButtonStack className="gap-2 sm:gap-3 sm:flex-row">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30 transition-all neon-text-cyan"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Add Movie</span>
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+                title="Import from Letterboxd CSV or MILO .db"
+              >
+                <Upload size={20} />
+                <span className="hidden sm:inline">Import</span>
+              </button>
               <motion.button
                 onClick={() => fetchMovies({ ...filterParams, sortBy })}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
                 whileHover={{ rotate: 180 }}
                 transition={{ duration: 0.3 }}
                 title="Refresh movies"
@@ -198,23 +214,10 @@ function MoviesPageContent() {
                 <RefreshCw size={20} />
                 <span className="hidden sm:inline">Refresh</span>
               </motion.button>
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-                title="Import from Letterboxd CSV or MILO .db"
-              >
-                <Upload size={20} />
-                <span className="hidden sm:inline">Import</span>
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30 transition-all neon-text-cyan"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add Movie</span>
-              </button>
-              <HeaderActions />
-            </div>
+              <div className="flex justify-center sm:justify-start">
+                <HeaderActions />
+              </div>
+            </MobileButtonStack>
           </div>
         </motion.header>
 
@@ -222,11 +225,11 @@ function MoviesPageContent() {
 
         <Stats analytics={analytics} type="movie" />
 
-        <motion.div className="mb-8 p-1 glass rounded-xl">
+        <motion.div className="mb-6 sm:mb-8 p-1 glass rounded-xl">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('movies')}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'movies'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -236,7 +239,7 @@ function MoviesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('timeline')}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'timeline'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -246,7 +249,7 @@ function MoviesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('recommendations')}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'recommendations'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'

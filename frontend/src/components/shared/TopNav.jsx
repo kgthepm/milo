@@ -34,28 +34,28 @@ export default function TopNav() {
 
   return (
     <>
-      <nav className="glass rounded-xl p-2 mb-8 flex gap-2">
+      <nav className="glass rounded-xl p-2 mb-6 sm:mb-8 flex gap-2">
         <Link
           to="/movies"
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium transition-all ${
             isMovies
               ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
               : 'text-white/70 hover:text-white hover:bg-white/5'
           }`}
         >
           <Film size={18} />
-          Movies
+          <span className="text-sm sm:text-base">Movies</span>
         </Link>
         <Link
           to="/tv"
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium transition-all ${
             !isMovies
               ? 'bg-neon-magenta/20 text-neon-magenta neon-border-magenta'
               : 'text-white/70 hover:text-white hover:bg-white/5'
           }`}
         >
           <Tv size={18} />
-          TV Series
+          <span className="text-sm sm:text-base">TV Series</span>
         </Link>
       </nav>
 
@@ -77,11 +77,11 @@ export default function TopNav() {
         onClick={() => setIsAssistantOpen(true)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="fixed bottom-4 right-4 w-24 h-24 border-2 border-white/20 flex items-center justify-center transition-all z-40"
+        className="fixed bottom-4 right-4 w-16 h-16 sm:w-24 sm:h-24 border-2 border-white/20 flex items-center justify-center transition-all z-40"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        <img src={miloIcon} alt="MILO AI" className="w-20 h-20 object-contain" />
+        <img src={miloIcon} alt="MILO AI" className="w-12 h-12 sm:w-20 sm:h-20 object-contain" />
       </motion.button>
 
       <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />

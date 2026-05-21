@@ -46,7 +46,7 @@ export default function HeaderActions() {
         session ? (
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
             title="Sign out"
           >
             <LogOut size={20} />
@@ -55,7 +55,7 @@ export default function HeaderActions() {
         ) : (
           <Link
             to="/landing"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-neon-cyan hover:text-cyan-300 hover:bg-white/10 font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-neon-cyan hover:text-cyan-300 hover:bg-white/10 font-medium transition-all"
             title="Sign in"
           >
             <LogIn size={20} />
@@ -65,7 +65,7 @@ export default function HeaderActions() {
       )}
       <button
         onClick={() => setIsSettingsOpen(true)}
-        className="flex items-center gap-2 px-6 py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
+        className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
         title="AI settings (BYOK)"
       >
         <SettingsIcon size={20} />

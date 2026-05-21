@@ -11,7 +11,7 @@ export default function Stats({ analytics, type = 'movie' }) {
   const label = isMovie ? 'Movies' : 'TV Series';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -22,7 +22,7 @@ export default function Stats({ analytics, type = 'movie' }) {
           {React.createElement(icon, { className: `text-neon-${colorClass}`, size: 24 })}
           <h3 className="text-white/80 text-sm font-medium">Total {label}</h3>
         </div>
-        <p className={`text-4xl font-bold neon-text-${colorClass}`}>{analytics.total}</p>
+        <p className={`text-3xl sm:text-4xl font-bold neon-text-${colorClass}`}>{analytics.total}</p>
       </motion.div>
 
       <motion.div
@@ -35,7 +35,7 @@ export default function Stats({ analytics, type = 'movie' }) {
           <Star className="text-neon-purple" size={24} />
           <h3 className="text-white/80 text-sm font-medium">Average Rating</h3>
         </div>
-        <p className="text-4xl font-bold neon-text-purple">{analytics.avgRating || 0}</p>
+        <p className="text-3xl sm:text-4xl font-bold neon-text-purple">{analytics.avgRating || 0}</p>
       </motion.div>
 
       <motion.div
@@ -48,7 +48,7 @@ export default function Stats({ analytics, type = 'movie' }) {
           <TrendingUp className="text-neon-yellow" size={24} />
           <h3 className="text-white/80 text-sm font-medium">Top Genre</h3>
         </div>
-        <p className="text-2xl font-bold neon-text-yellow truncate">
+        <p className="text-xl sm:text-2xl font-bold neon-text-yellow truncate">
           {analytics.topGenres && analytics.topGenres.length > 0 ? analytics.topGenres[0].genre : 'N/A'}
         </p>
       </motion.div>
