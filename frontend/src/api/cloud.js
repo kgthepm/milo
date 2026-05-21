@@ -1,5 +1,6 @@
 import { getSupabase } from '../utils/supabase';
 import { generateRecommendations as aiGenerate, listModels as aiListModels } from '../ai';
+import { normalizeTitle } from '../ai/prompt';
 import { loadAISettings } from '../utils/aiSettings';
 import { parseLetterboxdCSV, processLetterboxdRows } from './letterboxdClient';
 import { parseMiloDb, processDbRows } from './dbClient';
@@ -143,7 +144,9 @@ export const movieApi = {
             contentType: ct,
             settings,
           });
-          recs.forEach((r) => allRecs.push({ ...r, type: recType, contentType: ct, cached: false }));
+          const watchedSet = new Set(rowsByType[ct].map((r) => normalizeTitle(r.title)));
+          const filtered = recs.filter((r) => !watchedSet.has(normalizeTitle(r.title)));
+          filtered.forEach((r) => allRecs.push({ ...r, type: recType, contentType: ct, cached: false }));
         } catch (e) {
           lastError = e;
           console.error(`AI failed for ${ct}/${recType}:`, e.message);

@@ -6,9 +6,25 @@ const http = require('http');
 const cache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
+function normalizeTitle(s) {
+  if (!s) return '';
+  return String(s)
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function librarySignature(userMovies) {
+  if (!userMovies || userMovies.length === 0) return '0:';
+  const last = userMovies[userMovies.length - 1];
+  return `${userMovies.length}:${last?.id ?? ''}`;
+}
+
 // Generate cache key
-function getCacheKey(contentType, type, model) {
-  return `${contentType}:${type}:${model}`;
+function getCacheKey(contentType, type, model, sig) {
+  return `${contentType}:${type}:${model}:${sig}`;
 }
 
 // Check if cache is valid
@@ -17,8 +33,8 @@ function isCacheValid(cacheEntry) {
 }
 
 // Get cached recommendations
-function getCachedRecommendations(contentType, type, model) {
-  const key = getCacheKey(contentType, type, model);
+function getCachedRecommendations(contentType, type, model, sig) {
+  const key = getCacheKey(contentType, type, model, sig);
   const entry = cache.get(key);
 
   if (isCacheValid(entry)) {
@@ -30,8 +46,8 @@ function getCachedRecommendations(contentType, type, model) {
 }
 
 // Cache recommendations
-function cacheRecommendations(contentType, type, model, data) {
-  const key = getCacheKey(contentType, type, model);
+function cacheRecommendations(contentType, type, model, sig, data) {
+  const key = getCacheKey(contentType, type, model, sig);
   cache.set(key, {
     data,
     timestamp: Date.now()
@@ -41,7 +57,10 @@ function cacheRecommendations(contentType, type, model, data) {
 // Clear cache for specific key
 function clearCache(contentType, type, model) {
   if (model) {
-    cache.delete(getCacheKey(contentType, type, model));
+    const prefix = `${contentType}:${type}:${model}:`;
+    for (const key of cache.keys()) {
+      if (key.startsWith(prefix)) cache.delete(key);
+    }
   } else {
     // Clear all entries matching contentType:type for any model
     for (const key of cache.keys()) {
@@ -55,6 +74,8 @@ function buildRecommendationPrompt(userMovies, type, contentType) {
   const contentLabel = contentType === 'tv' ? 'TV series' : 'movies';
   
   let systemPrompt = `You are a ${contentLabel} recommendation expert. Analyze the user's viewing history and provide personalized recommendations.
+
+Never recommend a title the user has already watched.
 
 Return ONLY valid JSON in this format:
 {
@@ -87,6 +108,18 @@ Return ONLY valid JSON in this format:
   const genres = [...new Set(userMovies.map(m => m.genre).filter(Boolean))];
   const directors = [...new Set(userMovies.map(m => m.director).filter(Boolean))];
 
+  const watchedSorted = [...userMovies]
+    .sort((a, b) => {
+      const ad = a.date_watched || a.created_at || '';
+      const bd = b.date_watched || b.created_at || '';
+      return String(bd).localeCompare(String(ad));
+    })
+    .slice(0, 300);
+  const watchedTitlesList = [...new Set(watchedSorted.map(m => m.title).filter(Boolean))]
+    .map(t => `- ${t}`)
+    .join('\n');
+  const exclusionBlock = `\n\nIMPORTANT: I have already watched the following ${contentLabel}. Do NOT recommend any of these, or any obvious re-releases / remasters / alternate cuts / sequels-I've-already-seen of them:\n\n${watchedTitlesList}\n\nReturn only titles I have NOT seen.`;
+
   if (type === 'similar') {
     userPrompt = `Based on these highly-rated ${contentLabel} I've enjoyed:
 
@@ -111,6 +144,8 @@ I want to discover lesser-known ${contentLabel} (hidden gems) that match my tast
 
 For each, explain why it's a hidden gem that fits my taste perfectly.`;
   }
+
+  userPrompt += exclusionBlock;
 
   return { systemPrompt, userPrompt };
 }
@@ -206,7 +241,8 @@ async function generateRecommendations(userMovies, type = 'similar', contentType
     throw new Error('No model specified. Pick one from the dropdown.');
   }
   try {
-    const cached = getCachedRecommendations(contentType, type, resolvedModel);
+    const sig = librarySignature(userMovies);
+    const cached = getCachedRecommendations(contentType, type, resolvedModel, sig);
     if (cached) {
       return { recommendations: cached, cached: true };
     }
@@ -216,12 +252,14 @@ async function generateRecommendations(userMovies, type = 'similar', contentType
     const parsed = parseOllamaResponse(response);
 
     if (parsed && parsed.recommendations) {
+      const watchedSet = new Set((userMovies || []).map(m => normalizeTitle(m.title)));
       const validRecommendations = parsed.recommendations.filter(rec =>
         rec.title && rec.explanation && rec.confidence >= 1 && rec.confidence <= 10
+          && !watchedSet.has(normalizeTitle(rec.title))
       );
 
       if (validRecommendations.length > 0) {
-        cacheRecommendations(contentType, type, resolvedModel, validRecommendations);
+        cacheRecommendations(contentType, type, resolvedModel, sig, validRecommendations);
         return { recommendations: validRecommendations, cached: false };
       }
     }

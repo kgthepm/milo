@@ -1,7 +1,19 @@
+export function normalizeTitle(s) {
+  if (!s) return '';
+  return String(s)
+    .toLowerCase()
+    .replace(/^the\s+/, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function buildRecommendationPrompt(userMovies, type, contentType) {
   const contentLabel = contentType === 'tv' ? 'TV series' : 'movies';
 
   const systemPrompt = `You are a ${contentLabel} recommendation expert. Analyze the user's viewing history and provide personalized recommendations.
+
+Never recommend a title the user has already watched.
 
 Return ONLY valid JSON in this format:
 {
@@ -32,6 +44,18 @@ Return ONLY valid JSON in this format:
     )
     .join('\n- ');
 
+  const watchedSorted = [...userMovies]
+    .sort((a, b) => {
+      const ad = a.date_watched || a.created_at || '';
+      const bd = b.date_watched || b.created_at || '';
+      return bd.localeCompare(ad);
+    })
+    .slice(0, 300);
+  const watchedTitlesList = [...new Set(watchedSorted.map((m) => m.title).filter(Boolean))]
+    .map((t) => `- ${t}`)
+    .join('\n');
+  const exclusionBlock = `\n\nIMPORTANT: I have already watched the following ${contentLabel}. Do NOT recommend any of these, or any obvious re-releases / remasters / alternate cuts / sequels-I've-already-seen of them:\n\n${watchedTitlesList}\n\nReturn only titles I have NOT seen.`;
+
   let userPrompt = '';
   if (type === 'similar') {
     userPrompt = `Based on these highly-rated ${contentLabel} I've enjoyed:
@@ -59,6 +83,8 @@ For each, explain why it's a hidden gem that fits my taste perfectly.`;
   } else {
     userPrompt = `Based on these ${contentLabel}:\n- ${topRated}\n\nRecommend 5 ${contentLabel} I'd enjoy.`;
   }
+
+  userPrompt += exclusionBlock;
 
   return { systemPrompt, userPrompt };
 }
