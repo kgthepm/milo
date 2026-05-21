@@ -58,7 +58,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="glass rounded-2xl p-6 w-full max-w-md neon-border-cyan"
+        className="glass rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto neon-border-cyan"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
