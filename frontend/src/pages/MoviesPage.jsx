@@ -5,7 +5,6 @@ import { MovieProvider, useMovies } from '../utils/MovieContext';
 import MovieCard from '../components/movies/MovieCard';
 import AddMovieModal from '../components/movies/AddMovieModal';
 import EditMovieModal from '../components/movies/EditMovieModal';
-import LetterboxdImportModal from '../components/LetterboxdImportModal';
 import SearchFilter from '../components/shared/SearchFilter';
 import GenreFilter from '../components/shared/GenreFilter';
 import Timeline from '../components/movies/Timeline';
@@ -18,7 +17,6 @@ function MoviesPageContent() {
   const [activeTab, setActiveTab] = useState('movies');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [filterParams, setFilterParams] = useState({ sortBy: 'most_recent' });
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,11 +77,6 @@ function MoviesPageContent() {
   const handleEdit = (movie) => {
     setEditingMovie(movie);
     setShowEditModal(true);
-  };
-
-  const handleImportSuccess = (result) => {
-    fetchMovies();
-    fetchAnalytics();
   };
 
   const renderContent = () => {
@@ -239,16 +232,10 @@ function MoviesPageContent() {
 
       <AddMovieModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditMovieModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} movie={editingMovie} />
-      <LetterboxdImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImportSuccess={handleImportSuccess}
-      />
 
       <FloatingCommandBar
         page="movies"
         onAdd={() => setShowAddModal(true)}
-        onImport={() => setShowImportModal(true)}
         onRefresh={() => fetchMovies({ ...filterParams, sortBy })}
       />
     </div>

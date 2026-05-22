@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Film, Tv, Plus, Upload, RefreshCw, Settings as SettingsIcon, LogIn, LogOut } from 'lucide-react';
+import { Film, Tv, Plus, RefreshCw, Settings as SettingsIcon, LogIn, LogOut } from 'lucide-react';
 import { IS_CLOUD } from '../../utils/mode';
 import { getSupabase } from '../../utils/supabase';
 
@@ -34,7 +34,7 @@ function IconBtn({ onClick, title, children, accent = 'white', as = 'button', to
   );
 }
 
-export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh }) {
+export default function FloatingCommandBar({ page, onAdd, onRefresh }) {
   const location = useLocation();
   const isMovies = page === 'movies';
   const accent = isMovies ? 'cyan' : 'magenta';
@@ -123,13 +123,6 @@ export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh })
           <Plus size={20} />
           <span className="hidden sm:inline">Add</span>
         </motion.button>
-
-        {/* Optional import */}
-        {onImport && (
-          <IconBtn onClick={onImport} title="Import from Letterboxd CSV or MILO .db">
-            <Upload size={20} />
-          </IconBtn>
-        )}
 
         {/* Refresh */}
         {onRefresh && (

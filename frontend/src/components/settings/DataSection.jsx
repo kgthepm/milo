@@ -1,13 +1,78 @@
 import { useState } from 'react';
-import { Upload, Database, LogOut, LogIn } from 'lucide-react';
+import { Upload, Database, Download, LogOut, LogIn, Film, Tv } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LetterboxdImportModal from '../LetterboxdImportModal';
 import { useMovies } from '../../utils/MovieContext';
 import { IS_CLOUD } from '../../utils/mode';
+import { api as movieApi } from '../../api/movieApi';
+import { tvApi } from '../../api/tvApi';
+
+const EXPORT_COLUMNS = [
+  'title',
+  'rating',
+  'genre',
+  'date_watched',
+  'notes',
+  'director',
+  'release_year',
+  'type',
+  'num_seasons',
+  'total_episodes',
+];
+
+function escapeCsvValue(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function rowsToCsv(rows, columns) {
+  const header = columns.join(',');
+  const body = rows.map((row) => columns.map((c) => escapeCsvValue(row[c])).join(',')).join('\n');
+  return body ? `${header}\n${body}\n` : `${header}\n`;
+}
+
+function triggerDownload(filename, content) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function todayStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function DataSection({ session, onSignOut }) {
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [exporting, setExporting] = useState(null); // 'movies' | 'tv' | null
   const { fetchMovies } = useMovies();
+
+  const handleExport = async (kind) => {
+    setExportError('');
+    setExporting(kind);
+    try {
+      const rows = kind === 'movies'
+        ? await movieApi.getMovies({ type: 'movie' })
+        : await tvApi.getSeries();
+      const csv = rowsToCsv(rows || [], EXPORT_COLUMNS);
+      triggerDownload(`milo-${kind}-${todayStamp()}.csv`, csv);
+    } catch (err) {
+      console.error('Export failed:', err);
+      setExportError(err?.message || 'Export failed');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -38,6 +103,46 @@ export default function DataSection({ session, onSignOut }) {
             </div>
           </button>
         </div>
+      </section>
+
+      <section>
+        <h3 className="text-white font-semibold mb-2">Export</h3>
+        <p className="text-white/60 text-sm mb-4">
+          Download your library as CSV. Opens in any spreadsheet app and re-imports cleanly.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => handleExport('movies')}
+            disabled={exporting !== null}
+            className="flex items-center gap-3 p-4 rounded-lg glass border border-white/10 hover:border-neon-magenta/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Film size={22} className="text-neon-magenta shrink-0" />
+            <div>
+              <div className="text-white font-medium">
+                {exporting === 'movies' ? 'Exporting…' : 'Movies CSV'}
+              </div>
+              <div className="text-white/50 text-xs">Download all movies</div>
+            </div>
+            <Download size={18} className="ml-auto text-white/40 shrink-0" />
+          </button>
+          <button
+            onClick={() => handleExport('tv')}
+            disabled={exporting !== null}
+            className="flex items-center gap-3 p-4 rounded-lg glass border border-white/10 hover:border-neon-magenta/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Tv size={22} className="text-neon-magenta shrink-0" />
+            <div>
+              <div className="text-white font-medium">
+                {exporting === 'tv' ? 'Exporting…' : 'TV CSV'}
+              </div>
+              <div className="text-white/50 text-xs">Download all TV series</div>
+            </div>
+            <Download size={18} className="ml-auto text-white/40 shrink-0" />
+          </button>
+        </div>
+        {exportError && (
+          <p className="mt-3 text-sm text-red-400">{exportError}</p>
+        )}
       </section>
 
       {IS_CLOUD && (
