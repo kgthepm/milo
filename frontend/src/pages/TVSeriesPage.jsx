@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Tv, RefreshCw } from 'lucide-react';
+import { Tv } from 'lucide-react';
 import { TVSeriesProvider, useTVSeries } from '../utils/TVSeriesContext';
 import SeriesCard from '../components/tv/SeriesCard';
 import AddTVSeriesModal from '../components/tv/AddTVSeriesModal';
@@ -9,9 +9,7 @@ import SearchFilter from '../components/shared/SearchFilter';
 import GenreFilter from '../components/shared/GenreFilter';
 import TVRecommendations from '../components/tv/TVRecommendations';
 import Stats from '../components/shared/Stats';
-import TopNav from '../components/shared/TopNav';
-import HeaderActions from '../components/shared/HeaderActions';
-import MobileButtonStack from '../components/shared/MobileButtonStack';
+import FloatingCommandBar from '../components/shared/FloatingCommandBar';
 
 function TVSeriesPageContent() {
   const { series, analytics, loading, error, fetchSeries } = useTVSeries();
@@ -170,52 +168,26 @@ function TVSeriesPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-primary">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 pb-32 max-w-7xl">
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 flex items-center flex-wrap">
-                <span className="neon-text-magenta">MI</span>
-                <span className="neon-text-cyan">LO</span>
-                <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
-              </h1>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
-                <span className="text-xl md:text-2xl font-medium text-white/80 tracking-wide">TV Series</span>
-                <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
-              </div>
-              <p className="text-white/60">Track, discover, and analyze your TV series journey</p>
+          <div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 flex items-center flex-wrap">
+              <span className="neon-text-magenta">MI</span>
+              <span className="neon-text-cyan">LO</span>
+              <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
+            </h1>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
+              <span className="text-xl md:text-2xl font-medium text-white/80 tracking-wide">TV Series</span>
+              <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent via-neon-magenta/50 to-transparent"></div>
             </div>
-            <MobileButtonStack className="gap-2 sm:gap-3 sm:flex-row">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-neon-magenta/20 border border-neon-magenta/50 text-neon-magenta font-semibold hover:bg-neon-magenta/30 transition-all neon-text-magenta"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add TV Series</span>
-              </button>
-              <motion.button
-                onClick={() => fetchSeries({ ...filterParams, sortBy })}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-                whileHover={{ rotate: 180 }}
-                transition={{ duration: 0.3 }}
-                title="Refresh TV series"
-              >
-                <RefreshCw size={20} />
-                <span className="hidden sm:inline">Refresh</span>
-              </motion.button>
-              <div className="flex justify-center sm:justify-start">
-                <HeaderActions />
-              </div>
-            </MobileButtonStack>
+            <p className="text-white/60">Track, discover, and analyze your TV series journey</p>
           </div>
         </motion.header>
-
-        <TopNav />
 
         <Stats analytics={analytics} type="tv" />
 
@@ -259,6 +231,12 @@ function TVSeriesPageContent() {
 
       <AddTVSeriesModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditTVSeriesModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} series={editingSeries} />
+
+      <FloatingCommandBar
+        page="tv"
+        onAdd={() => setShowAddModal(true)}
+        onRefresh={() => fetchSeries({ ...filterParams, sortBy })}
+      />
     </div>
   );
 }

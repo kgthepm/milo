@@ -5,6 +5,7 @@ import TVSeriesPage from './pages/TVSeriesPage';
 import LandingPage from './pages/LandingPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthGate from './components/AuthGate';
+import MiloAssistantFab from './components/shared/MiloAssistantFab';
 import { loadUserPrefs, subscribeUserPrefs } from './utils/userPrefs';
 
 function applyTheme(theme) {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/tv" element={<TVSeriesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
+        <MiloAssistantFab />
       </AuthGate>
     </BrowserRouter>
   );

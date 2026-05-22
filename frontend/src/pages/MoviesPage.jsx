@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Film, RefreshCw, Upload } from 'lucide-react';
+import { Film } from 'lucide-react';
 import { MovieProvider, useMovies } from '../utils/MovieContext';
 import MovieCard from '../components/movies/MovieCard';
 import AddMovieModal from '../components/movies/AddMovieModal';
@@ -11,9 +11,7 @@ import GenreFilter from '../components/shared/GenreFilter';
 import Timeline from '../components/movies/Timeline';
 import Recommendations from '../components/movies/Recommendations';
 import Stats from '../components/shared/Stats';
-import TopNav from '../components/shared/TopNav';
-import HeaderActions from '../components/shared/HeaderActions';
-import MobileButtonStack from '../components/shared/MobileButtonStack';
+import FloatingCommandBar from '../components/shared/FloatingCommandBar';
 
 function MoviesPageContent() {
   const { movies, analytics, loading, error, fetchMovies, fetchAnalytics } = useMovies();
@@ -173,55 +171,21 @@ function MoviesPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-primary">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 pb-32 max-w-7xl">
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 flex items-center flex-wrap">
-                <span className="neon-text-cyan">MI</span>
-                <span className="neon-text-magenta">LO</span>
-                <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
-              </h1>
-              <p className="text-white/60">Track, discover, and analyze your movie journey</p>
-            </div>
-            <MobileButtonStack className="gap-2 sm:gap-3 sm:flex-row">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30 transition-all neon-text-cyan"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add Movie</span>
-              </button>
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-                title="Import from Letterboxd CSV or MILO .db"
-              >
-                <Upload size={20} />
-                <span className="hidden sm:inline">Import</span>
-              </button>
-              <motion.button
-                onClick={() => fetchMovies({ ...filterParams, sortBy })}
-                className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-                whileHover={{ rotate: 180 }}
-                transition={{ duration: 0.3 }}
-                title="Refresh movies"
-              >
-                <RefreshCw size={20} />
-                <span className="hidden sm:inline">Refresh</span>
-              </motion.button>
-              <div className="flex justify-center sm:justify-start">
-                <HeaderActions />
-              </div>
-            </MobileButtonStack>
+          <div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 flex items-center flex-wrap">
+              <span className="neon-text-cyan">MI</span>
+              <span className="neon-text-magenta">LO</span>
+              <span className="text-sm md:text-base text-white/40 font-light ml-4">Movie Intelligence & Learning Overseer</span>
+            </h1>
+            <p className="text-white/60">Track, discover, and analyze your movie journey</p>
           </div>
         </motion.header>
-
-        <TopNav />
 
         <Stats analytics={analytics} type="movie" />
 
@@ -275,10 +239,17 @@ function MoviesPageContent() {
 
       <AddMovieModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditMovieModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} movie={editingMovie} />
-      <LetterboxdImportModal 
-        isOpen={showImportModal} 
-        onClose={() => setShowImportModal(false)} 
+      <LetterboxdImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
         onImportSuccess={handleImportSuccess}
+      />
+
+      <FloatingCommandBar
+        page="movies"
+        onAdd={() => setShowAddModal(true)}
+        onImport={() => setShowImportModal(true)}
+        onRefresh={() => fetchMovies({ ...filterParams, sortBy })}
       />
     </div>
   );

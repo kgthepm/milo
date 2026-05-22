@@ -1,0 +1,55 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AssistantModal from './AssistantModal';
+import miloIcon from '/milo-ai-icon.jpeg';
+
+const messages = [
+  'Chat with MILO',
+  'Need movie recs?',
+  'Ask me anything!',
+  'What should I watch?',
+  "MILO's got you covered",
+  "Let's find something good",
+];
+
+export default function MiloAssistantFab() {
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipMessage, setTooltipMessage] = useState('');
+
+  const handleMouseEnter = () => {
+    setTooltipMessage(messages[Math.floor(Math.random() * messages.length)]);
+    setShowTooltip(true);
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-28 right-4 glass rounded-lg px-3 py-1.5 text-xs text-white shadow-lg pointer-events-none z-50 whitespace-nowrap"
+          >
+            {tooltipMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.button
+        onClick={() => setIsAssistantOpen(true)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setShowTooltip(false)}
+        className="fixed bottom-4 right-4 w-16 h-16 sm:w-24 sm:h-24 border-2 border-white/20 flex items-center justify-center transition-all z-40"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <img src={miloIcon} alt="MILO AI" className="w-12 h-12 sm:w-20 sm:h-20 object-contain" />
+      </motion.button>
+
+      <AssistantModal isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+    </>
+  );
+}
