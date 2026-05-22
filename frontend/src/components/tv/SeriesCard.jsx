@@ -1,20 +1,9 @@
 import { motion } from 'framer-motion';
 import { Star, Calendar, Trash2, Edit, Tv, Layers, List } from 'lucide-react';
 import { useTVSeries } from '../../utils/TVSeriesContext';
-import { useState } from 'react';
-
-const genreColors = {
-  'Action': 'border-neon-magenta shadow-neon-magenta',
-  'Comedy': 'border-neon-yellow shadow-neon-yellow',
-  'Drama': 'border-neon-purple shadow-neon-purple',
-  'Sci-Fi': 'border-neon-cyan shadow-neon-cyan',
-  'Horror': 'border-red-500 shadow-red-500',
-  'Thriller': 'border-orange-500 shadow-orange-500',
-  'Romance': 'border-pink-500 shadow-pink-500',
-  'Animation': 'border-green-500 shadow-green-500',
-  'Documentary': 'border-blue-500 shadow-blue-500',
-  'Fantasy': 'border-purple-500 shadow-purple-500',
-};
+import { useState, useEffect } from 'react';
+import { getEffectiveGenreColors, subscribeUserPrefs } from '../../utils/userPrefs';
+import { getGenreGlowStyle } from '../../utils/genreColors';
 
 const getRatingColor = (rating) => {
   if (rating >= 8) return 'text-green-400';
@@ -25,6 +14,8 @@ const getRatingColor = (rating) => {
 export default function SeriesCard({ series, onEdit }) {
   const { deleteSeries } = useTVSeries();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [genreColors, setGenreColors] = useState(getEffectiveGenreColors);
+  useEffect(() => subscribeUserPrefs(() => setGenreColors(getEffectiveGenreColors())), []);
 
   const handleDelete = async () => {
     if (window.confirm(`Are you sure you want to delete "${series.title}"?`)) {
@@ -38,7 +29,7 @@ export default function SeriesCard({ series, onEdit }) {
     }
   };
 
-  const genreClass = series.genre ? genreColors[series.genre] || 'border-white/20' : 'border-white/20';
+  const glowStyle = getGenreGlowStyle(series.genre, genreColors);
   const ratingClass = getRatingColor(series.rating);
 
   return (
@@ -46,7 +37,8 @@ export default function SeriesCard({ series, onEdit }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      className={`glass rounded-xl p-4 sm:p-5 border ${genreClass} transition-all duration-300`}
+      style={glowStyle}
+      className="glass rounded-xl p-4 sm:p-5 border transition-all duration-300"
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2 flex-1">
