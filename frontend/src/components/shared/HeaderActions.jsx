@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings as SettingsIcon, LogOut, LogIn } from 'lucide-react';
-import SettingsModal from '../SettingsModal';
 import { IS_CLOUD } from '../../utils/mode';
 import { getSupabase } from '../../utils/supabase';
 
 export default function HeaderActions() {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [session, setSession] = useState(null);
 
   useEffect(() => {
@@ -63,15 +61,13 @@ export default function HeaderActions() {
           </Link>
         )
       )}
-      <button
-        onClick={() => setIsSettingsOpen(true)}
+      <Link
+        to="/settings"
         className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 rounded-xl glass text-white/70 hover:text-white hover:bg-white/10 font-medium transition-all"
-        title="AI settings (BYOK)"
+        title="Settings"
       >
         <SettingsIcon size={20} />
-      </button>
-
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      </Link>
     </>
   );
 }

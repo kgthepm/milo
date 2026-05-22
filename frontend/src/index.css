@@ -15,6 +15,11 @@ body {
   color: #ffffff;
 }
 
+html.light body {
+  background: linear-gradient(135deg, #f4f4fa 0%, #e8ecf4 50%, #f4f4fa 100%);
+  color: #15151c;
+}
+
 .glass {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
