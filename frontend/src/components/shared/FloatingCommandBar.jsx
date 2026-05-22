@@ -6,7 +6,7 @@ import { IS_CLOUD } from '../../utils/mode';
 import { getSupabase } from '../../utils/supabase';
 
 function Divider() {
-  return <div className="w-px h-8 bg-white/10 mx-1" />;
+  return <div className="w-px h-8 bg-white/10 mx-0.5 sm:mx-1 shrink-0" />;
 }
 
 function IconBtn({ onClick, title, children, accent = 'white', as = 'button', to, motionProps }) {
@@ -17,7 +17,7 @@ function IconBtn({ onClick, title, children, accent = 'white', as = 'button', to
       ? 'text-neon-magenta hover:text-white hover:bg-neon-magenta/20'
       : 'text-white/70 hover:text-white hover:bg-white/10';
 
-  const base = `flex items-center justify-center w-11 h-11 rounded-xl transition-all ${accentClass}`;
+  const base = `flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl transition-all shrink-0 ${accentClass}`;
 
   if (as === 'link') {
     return (
@@ -72,10 +72,11 @@ export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh })
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="fixed bottom-2 left-2 right-2 sm:bottom-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40"
     >
       <div
-        className={`glass rounded-2xl px-2 py-2 flex items-center gap-1 shadow-2xl ${
+        className={`glass rounded-2xl px-1.5 py-1.5 sm:px-2 sm:py-2 flex items-center justify-between sm:justify-start gap-0.5 sm:gap-1 shadow-2xl ${
           isMovies ? 'neon-border-cyan' : 'neon-border-magenta'
         }`}
       >
@@ -83,7 +84,7 @@ export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh })
         <Link
           to="/movies"
           title="Movies"
-          className={`flex items-center gap-2 px-3 sm:px-4 h-11 rounded-xl font-medium text-sm transition-all ${
+          className={`flex items-center gap-2 px-2.5 sm:px-4 h-11 rounded-xl font-medium text-sm transition-all shrink-0 ${
             onMoviesPath
               ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
               : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -95,7 +96,7 @@ export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh })
         <Link
           to="/tv"
           title="TV Series"
-          className={`flex items-center gap-2 px-3 sm:px-4 h-11 rounded-xl font-medium text-sm transition-all ${
+          className={`flex items-center gap-2 px-2.5 sm:px-4 h-11 rounded-xl font-medium text-sm transition-all shrink-0 ${
             !onMoviesPath
               ? 'bg-neon-magenta/20 text-neon-magenta neon-border-magenta'
               : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -113,7 +114,7 @@ export default function FloatingCommandBar({ page, onAdd, onImport, onRefresh })
           title={isMovies ? 'Add Movie' : 'Add TV Series'}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className={`flex items-center gap-2 h-11 px-4 rounded-xl font-semibold text-sm transition-all pulse-glow ${
+          className={`flex items-center gap-2 h-11 px-3 sm:px-4 rounded-xl font-semibold text-sm transition-all pulse-glow shrink-0 ${
             isMovies
               ? 'bg-neon-cyan/20 border border-neon-cyan/60 text-neon-cyan neon-text-cyan hover:bg-neon-cyan/30'
               : 'bg-neon-magenta/20 border border-neon-magenta/60 text-neon-magenta neon-text-magenta hover:bg-neon-magenta/30'
