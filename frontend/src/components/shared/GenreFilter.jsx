@@ -5,7 +5,7 @@ export default function GenreFilter({ selectedGenre, onGenreChange }) {
   const genreOptions = genres.map(genre => ({ value: genre, label: genre }));
 
   return (
-    <div className="glass rounded-xl p-2 sm:p-3 mb-4">
+    <div className="glass rounded-xl p-2 sm:p-3 mb-4 relative z-30">
       <MobileFilterDropdown
         label={selectedGenre}
         options={genreOptions}
