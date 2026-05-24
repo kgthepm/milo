@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, Sparkles, Palette, Database } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, Sparkles, Palette, Database, User } from 'lucide-react';
 import { MovieProvider } from '../utils/MovieContext';
+import { FriendsProvider } from '../utils/FriendsContext';
 import { IS_CLOUD } from '../utils/mode';
 import { getSupabase } from '../utils/supabase';
 import AIProvidersSection from '../components/settings/AIProvidersSection';
 import AppearanceSection from '../components/settings/AppearanceSection';
 import DataSection from '../components/settings/DataSection';
+import ProfileEditor from '../components/friends/ProfileEditor';
 
 const TABS = [
+  ...(IS_CLOUD ? [{ id: 'profile', label: 'Profile', icon: User }] : []),
   { id: 'ai', label: 'AI providers', icon: Sparkles },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'data', label: 'Data', icon: Database },
 ];
 
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState('ai');
+  const [activeTab, setActiveTab] = useState(TABS[0].id);
   const [session, setSession] = useState(null);
 
   useEffect(() => {
@@ -77,6 +80,11 @@ function SettingsContent() {
         </nav>
 
         <div className="flex-1 min-w-0 glass rounded-2xl p-6 border border-white/10">
+          {activeTab === 'profile' && IS_CLOUD && (
+            <FriendsProvider>
+              <ProfileEditor />
+            </FriendsProvider>
+          )}
           {activeTab === 'ai' && <AIProvidersSection />}
           {activeTab === 'appearance' && <AppearanceSection />}
           {activeTab === 'data' && (

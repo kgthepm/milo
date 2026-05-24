@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Globe, Lock } from 'lucide-react';
 import { useMovies } from '../../utils/MovieContext';
+import { IS_CLOUD } from '../../utils/mode';
 
 const genres = ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Horror', 'Thriller', 'Romance', 'Animation', 'Documentary', 'Fantasy'];
 
@@ -15,6 +16,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
     notes: '',
     director: '',
     release_year: '',
+    is_public: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,6 +39,7 @@ export default function AddMovieModal({ isOpen, onClose }) {
         notes: '',
         director: '',
         release_year: '',
+        is_public: true,
       });
       onClose();
     } catch (err) {
@@ -159,6 +162,25 @@ export default function AddMovieModal({ isOpen, onClose }) {
               placeholder="Add your thoughts..."
             />
           </div>
+
+          {IS_CLOUD && (
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, is_public: !formData.is_public })}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-lg glass text-left"
+              aria-pressed={formData.is_public}
+            >
+              <span className="flex items-center gap-2 text-white/80">
+                {formData.is_public ? <Globe size={18} /> : <Lock size={18} />}
+                <span className="text-sm font-medium">
+                  {formData.is_public ? 'Visible to friends' : 'Private (only you)'}
+                </span>
+              </span>
+              <span className={`text-xs px-2 py-1 rounded ${formData.is_public ? 'bg-neon-cyan/20 text-neon-cyan' : 'bg-white/10 text-white/60'}`}>
+                {formData.is_public ? 'Public' : 'Private'}
+              </span>
+            </button>
+          )}
 
           <button
             type="submit"

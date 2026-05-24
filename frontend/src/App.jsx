@@ -4,9 +4,12 @@ import MoviesPage from './pages/MoviesPage';
 import TVSeriesPage from './pages/TVSeriesPage';
 import LandingPage from './pages/LandingPage';
 import SettingsPage from './pages/SettingsPage';
+import FriendsPage from './pages/FriendsPage';
+import FriendProfilePage from './pages/FriendProfilePage';
 import AuthGate from './components/AuthGate';
 import MiloAssistantFab from './components/shared/MiloAssistantFab';
 import { loadUserPrefs, subscribeUserPrefs } from './utils/userPrefs';
+import { IS_CLOUD } from './utils/mode';
 
 function applyTheme(theme) {
   const root = document.documentElement;
@@ -34,6 +37,8 @@ function App() {
           <Route path="/movies" element={<MoviesPage />} />
           <Route path="/tv" element={<TVSeriesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {IS_CLOUD && <Route path="/friends" element={<FriendsPage />} />}
+          {IS_CLOUD && <Route path="/friends/:friendId" element={<FriendProfilePage />} />}
         </Routes>
         <MiloAssistantFab />
       </AuthGate>

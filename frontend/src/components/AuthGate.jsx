@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, Sparkles } from 'lucide-react';
+import { LogIn, Mail, Lock, Sparkles, AtSign } from 'lucide-react';
 import { IS_CLOUD } from '../utils/mode';
 import { getSupabase } from '../utils/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -15,6 +15,7 @@ function CloudAuthGate({ children }) {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [mode, setMode] = useState('signin');
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +59,13 @@ function CloudAuthGate({ children }) {
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await sb.auth.signUp({ email, password });
+        const trimmedUsername = username.trim();
+        if (!trimmedUsername) throw new Error('Pick a username so friends can find you.');
+        const { error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { username: trimmedUsername } },
+        });
         if (error) throw error;
         setInfo('Check your inbox to confirm your email.');
       }
@@ -100,6 +107,18 @@ function CloudAuthGate({ children }) {
                 className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none"
               />
             </label>
+            {mode === 'signup' && (
+              <label className="block">
+                <span className="text-white/70 text-sm flex items-center gap-2 mb-1"><AtSign size={14}/> Username</span>
+                <input
+                  type="text" required value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 32))}
+                  placeholder="friends will find you by this"
+                  className="w-full bg-black/40 text-white rounded-lg px-3 py-2 border border-white/10 focus:border-cyan-500 outline-none"
+                />
+                <span className="text-white/40 text-xs mt-1 block">Letters, numbers, and underscores only.</span>
+              </label>
+            )}
             <label className="block">
               <span className="text-white/70 text-sm flex items-center gap-2 mb-1"><Lock size={14}/> Password</span>
               <input

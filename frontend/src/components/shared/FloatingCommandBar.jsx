@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Film, Tv, Plus, RefreshCw, Settings as SettingsIcon, LogIn, LogOut } from 'lucide-react';
+import { Film, Tv, Plus, RefreshCw, Settings as SettingsIcon, LogIn, LogOut, Users } from 'lucide-react';
 import { IS_CLOUD } from '../../utils/mode';
 import { getSupabase } from '../../utils/supabase';
 
@@ -148,6 +148,13 @@ export default function FloatingCommandBar({ page, onAdd, onRefresh }) {
               <LogIn size={20} />
             </IconBtn>
           )
+        )}
+
+        {/* Friends (cloud only) */}
+        {IS_CLOUD && (
+          <IconBtn as="link" to="/friends" title="Friends" accent={location.pathname.startsWith('/friends') ? 'cyan' : 'white'}>
+            <Users size={20} />
+          </IconBtn>
         )}
 
         {/* Settings */}
