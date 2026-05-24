@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, UserPlus, Inbox } from 'lucide-react';
+import { Users, UserPlus, Inbox, Film } from 'lucide-react';
 import { useFriends } from '../utils/FriendsContext';
 import { FriendsProvider } from '../utils/FriendsContext';
 import FriendCard from '../components/friends/FriendCard';
@@ -28,12 +29,20 @@ function FriendsPageInner() {
               <Users className="text-neon-cyan" size={28} />
               <span className="neon-text-cyan">Friends</span>
             </h1>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30"
-            >
-              <UserPlus size={16} /> Find friends
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/movies"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white/70 hover:text-white hover:bg-white/20 font-semibold"
+              >
+                <Film size={16} /> Home
+              </Link>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan font-semibold hover:bg-neon-cyan/30"
+              >
+                <UserPlus size={16} /> Find friends
+              </button>
+            </div>
           </div>
           <p className="text-white/60 text-sm mt-2">
             See what your friends are watching. Items you mark private stay hidden.
