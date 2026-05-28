@@ -263,7 +263,8 @@ function TVSeriesPageContent() {
                   : 'text-white/70 hover:text-white hover:bg-white/5'
               }`}
             >
-              Recommendations
+              <span className="sm:hidden">Recs</span>
+              <span className="hidden sm:inline">Recommendations</span>
             </button>
           </div>
         </motion.div>

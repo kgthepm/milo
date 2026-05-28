@@ -222,7 +222,7 @@ function MoviesPageContent() {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('movies')}
-              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+              className={`flex-1 px-2 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'movies'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -232,7 +232,7 @@ function MoviesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('to_watch')}
-              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+              className={`flex-1 px-2 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'to_watch'
                   ? 'bg-amber-500/20 text-amber-300 neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -242,7 +242,7 @@ function MoviesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('timeline')}
-              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+              className={`flex-1 px-2 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'timeline'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
@@ -252,13 +252,14 @@ function MoviesPageContent() {
             </button>
             <button
               onClick={() => setActiveTab('recommendations')}
-              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+              className={`flex-1 px-2 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'recommendations'
                   ? 'bg-neon-cyan/20 text-neon-cyan neon-border-cyan'
                   : 'text-white/70 hover:text-white hover:bg-white/5'
               }`}
             >
-              Recommendations
+              <span className="sm:hidden">Recs</span>
+              <span className="hidden sm:inline">Recommendations</span>
             </button>
           </div>
         </motion.div>
