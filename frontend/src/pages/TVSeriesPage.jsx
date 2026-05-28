@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tv } from 'lucide-react';
-import { TVSeriesProvider, useTVSeries } from '../utils/TVSeriesContext';
+import { useTVSeries } from '../utils/TVSeriesContext';
 import SeriesCard from '../components/tv/SeriesCard';
 import AddTVSeriesModal from '../components/tv/AddTVSeriesModal';
 import EditTVSeriesModal from '../components/tv/EditTVSeriesModal';
@@ -242,9 +242,5 @@ function TVSeriesPageContent() {
 }
 
 export default function TVSeriesPage() {
-  return (
-    <TVSeriesProvider>
-      <TVSeriesPageContent />
-    </TVSeriesProvider>
-  );
+  return <TVSeriesPageContent />;
 }

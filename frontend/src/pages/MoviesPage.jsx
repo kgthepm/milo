@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Film } from 'lucide-react';
-import { MovieProvider, useMovies } from '../utils/MovieContext';
+import { useMovies } from '../utils/MovieContext';
 import MovieCard from '../components/movies/MovieCard';
 import AddMovieModal from '../components/movies/AddMovieModal';
 import EditMovieModal from '../components/movies/EditMovieModal';
@@ -243,9 +243,5 @@ function MoviesPageContent() {
 }
 
 export default function MoviesPage() {
-  return (
-    <MovieProvider>
-      <MoviesPageContent />
-    </MovieProvider>
-  );
+  return <MoviesPageContent />;
 }

@@ -1,9 +1,9 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Brain, Loader2, AlertCircle } from 'lucide-react';
 import { assistantApi } from '../../api/assistantApi';
-import { MovieContext } from '../../utils/MovieContext';
-import { TVSeriesContext } from '../../utils/TVSeriesContext';
+import { useMovies } from '../../utils/MovieContext';
+import { useTVSeries } from '../../utils/TVSeriesContext';
 
 const quickActions = [
   'Find similar movies',
@@ -13,11 +13,6 @@ const quickActions = [
   'What should I watch this weekend?'
 ];
 
-function useSafeContext(context, defaultValue) {
-  const value = useContext(context);
-  return value || defaultValue;
-}
-
 export default function AssistantModal({ isOpen, onClose }) {
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState('');
@@ -26,12 +21,10 @@ export default function AssistantModal({ isOpen, onClose }) {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
 
-  const movies = useSafeContext(MovieContext, { movies: [], analytics: null }).movies || [];
-  const movieAnalytics = useSafeContext(MovieContext, { movies: [], analytics: null }).analytics;
-  const series = useSafeContext(TVSeriesContext, { series: [], analytics: null }).series || [];
-  const tvAnalytics = useSafeContext(TVSeriesContext, { series: [], analytics: null }).analytics;
+  const { movies, analytics: movieAnalytics } = useMovies();
+  const { series, analytics: tvAnalytics } = useTVSeries();
 
-  const combinedMovies = movies.filter(m => m.type === 'movie');
+  const combinedMovies = movies;
   const combinedTV = series;
   const combinedAnalytics = {
     totalWatched: (movieAnalytics?.total || 0) + (tvAnalytics?.total || 0),

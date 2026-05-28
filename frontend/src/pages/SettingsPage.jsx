@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Settings as SettingsIcon, Sparkles, Palette, Database, User } from 'lucide-react';
-import { MovieProvider } from '../utils/MovieContext';
 import { FriendsProvider } from '../utils/FriendsContext';
 import { IS_CLOUD } from '../utils/mode';
 import { getSupabase } from '../utils/supabase';
@@ -97,9 +96,5 @@ function SettingsContent() {
 }
 
 export default function SettingsPage() {
-  return (
-    <MovieProvider>
-      <SettingsContent />
-    </MovieProvider>
-  );
+  return <SettingsContent />;
 }
