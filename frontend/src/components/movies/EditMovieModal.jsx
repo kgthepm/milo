@@ -44,6 +44,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
       await updateMovie(movie.id, {
         ...formData,
         rating: parseFloat(formData.rating),
+        date_watched: formData.date_watched || null,
         release_year: formData.release_year ? parseInt(formData.release_year) : null,
       });
       onClose();

@@ -46,6 +46,7 @@ export default function EditTVSeriesModal({ isOpen, onClose, series }) {
       await updateSeries(series.id, {
         ...formData,
         rating: parseFloat(formData.rating),
+        date_watched: formData.date_watched || null,
         num_seasons: formData.num_seasons ? parseInt(formData.num_seasons) : null,
         total_episodes: formData.total_episodes ? parseInt(formData.total_episodes) : null,
         release_year: formData.release_year ? parseInt(formData.release_year) : null,

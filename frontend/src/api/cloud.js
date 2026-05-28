@@ -7,6 +7,12 @@ import { parseMiloDb, processDbRows } from './dbClient';
 
 const TABLE = 'movies';
 
+function normalizeDateFields(row) {
+  const out = { ...row };
+  if (out.date_watched === '') out.date_watched = null;
+  return out;
+}
+
 async function requireUserId() {
   const sb = getSupabase();
   const { data, error } = await sb.auth.getUser();
@@ -113,7 +119,7 @@ export const movieApi = {
       throw err;
     }
 
-    const payload = { ...movie, type: resolvedType, status: resolvedStatus, user_id };
+    const payload = normalizeDateFields({ ...movie, type: resolvedType, status: resolvedStatus, user_id });
     const { data, error } = await sb.from(TABLE).insert(payload).select().single();
     if (error) throw new Error(error.message);
     return data;
@@ -121,7 +127,7 @@ export const movieApi = {
 
   async updateMovie(id, movie) {
     const sb = getSupabase();
-    const payload = { ...movie, type: movie.type || 'movie' };
+    const payload = normalizeDateFields({ ...movie, type: movie.type || 'movie' });
     delete payload.id;
     delete payload.user_id;
     delete payload.created_at;
