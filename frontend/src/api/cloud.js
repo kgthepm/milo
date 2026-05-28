@@ -51,7 +51,8 @@ function applySort(query, sortBy) {
 
 async function listRows(params = {}) {
   const sb = getSupabase();
-  let q = sb.from(TABLE).select('*');
+  const user_id = await requireUserId();
+  let q = sb.from(TABLE).select('*').eq('user_id', user_id);
   q = applyFilters(q, params);
   q = applySort(q, params.sortBy);
   const { data, error } = await q;
