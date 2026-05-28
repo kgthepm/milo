@@ -15,8 +15,9 @@ async function requireUserId() {
 }
 
 function applyFilters(query, params) {
-  const { search, genre, minRating, maxRating, startDate, endDate, type } = params;
+  const { search, genre, minRating, maxRating, startDate, endDate, type, status } = params;
   if (type) query = query.eq('type', type);
+  if (status) query = query.eq('status', status);
   if (genre) query = query.eq('genre', genre);
   if (minRating !== undefined && minRating !== null && minRating !== '') query = query.gte('rating', Number(minRating));
   if (maxRating !== undefined && maxRating !== null && maxRating !== '') query = query.lte('rating', Number(maxRating));
@@ -93,7 +94,26 @@ export const movieApi = {
   async addMovie(movie) {
     const sb = getSupabase();
     const user_id = await requireUserId();
-    const payload = { ...movie, type: movie.type || 'movie', user_id };
+    const resolvedType = movie.type || 'movie';
+    const resolvedStatus = movie.status || 'watched';
+
+    const { data: existing } = await sb
+      .from(TABLE)
+      .select('id, status')
+      .eq('user_id', user_id)
+      .eq('type', resolvedType)
+      .eq('title', movie.title)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing && existing.status !== resolvedStatus) {
+      const err = new Error('Title already exists with a different status');
+      err.status = 409;
+      err.data = { existingId: existing.id, currentStatus: existing.status, requestedStatus: resolvedStatus };
+      throw err;
+    }
+
+    const payload = { ...movie, type: resolvedType, status: resolvedStatus, user_id };
     const { data, error } = await sb.from(TABLE).insert(payload).select().single();
     if (error) throw new Error(error.message);
     return data;
@@ -118,7 +138,7 @@ export const movieApi = {
   },
 
   async getAnalytics(params = {}) {
-    const rows = await listRows({ type: params.type });
+    const rows = await listRows({ type: params.type, status: 'watched' });
     return computeAnalytics(rows, params.type || 'movie');
   },
 
@@ -131,7 +151,7 @@ export const movieApi = {
     const recTypes = type === 'all' ? ['similar', 'hidden_gems'] : [type];
 
     const rowsByType = {};
-    for (const ct of contentTypes) rowsByType[ct] = await listRows({ type: ct });
+    for (const ct of contentTypes) rowsByType[ct] = await listRows({ type: ct, status: 'watched' });
 
     const allRecs = [];
     let lastError = null;

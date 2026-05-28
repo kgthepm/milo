@@ -36,9 +36,9 @@ export const MovieProvider = ({ children }) => {
     }
   };
 
-  const addMovie = async (movie) => {
+  const addMovie = async (movie, defaultStatus = 'watched') => {
     try {
-      await api.addMovie(movie);
+      await api.addMovie({ ...movie, status: movie.status || defaultStatus });
       await fetchMovies();
       await fetchAnalytics();
     } catch (err) {
@@ -54,6 +54,12 @@ export const MovieProvider = ({ children }) => {
     } catch (err) {
       throw err;
     }
+  };
+
+  const updateMovieStatus = async (id, status) => {
+    const movie = movies.find(m => m.id === id);
+    if (!movie) return;
+    await updateMovie(id, { ...movie, status });
   };
 
   const deleteMovie = async (id) => {
@@ -80,6 +86,7 @@ export const MovieProvider = ({ children }) => {
       fetchMovies,
       addMovie,
       updateMovie,
+      updateMovieStatus,
       deleteMovie,
     }}>
       {children}

@@ -73,8 +73,16 @@ function TVSeriesPageContent() {
     fetchSeries(newParams);
   };
 
+  const watchedSeries = series.filter(s => (s.status || 'watched') === 'watched');
+  const toWatchSeries = series.filter(s => s.status === 'to_watch');
+
   const handleEdit = (tvSeries) => {
     setEditingSeries(tvSeries);
+    setShowEditModal(true);
+  };
+
+  const handleMarkWatched = (tvSeries) => {
+    setEditingSeries({ ...tvSeries, status: 'watched' });
     setShowEditModal(true);
   };
 
@@ -105,7 +113,7 @@ function TVSeriesPageContent() {
               <div className="text-center py-12 text-red-400">
                 <p>{error}</p>
               </div>
-            ) : series.length === 0 ? (
+            ) : watchedSeries.length === 0 ? (
               <div className="text-center py-12 text-white/50">
                 <Tv size={48} className="mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No TV series found</p>
@@ -114,7 +122,7 @@ function TVSeriesPageContent() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
-              {series.map((tvSeries, index) => (
+              {watchedSeries.map((tvSeries, index) => (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -126,6 +134,40 @@ function TVSeriesPageContent() {
                 </motion.div>
               ))}
             </AnimatePresence>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'to_watch':
+        return (
+          <div className="space-y-6">
+            {toWatchSeries.length === 0 ? (
+              <div className="text-center py-12 text-white/50">
+                <Tv size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Your watchlist is empty</p>
+                <p className="text-sm">Add a TV series you want to watch!</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {[...toWatchSeries]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .map((tvSeries) => (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        key={tvSeries.id}
+                      >
+                        <SeriesCard
+                          series={tvSeries}
+                          onEdit={handleEdit}
+                          onMarkWatched={handleMarkWatched}
+                        />
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
               </div>
             )}
           </div>
@@ -204,6 +246,16 @@ function TVSeriesPageContent() {
               TV Series
             </button>
             <button
+              onClick={() => setActiveTab('to_watch')}
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+                activeTab === 'to_watch'
+                  ? 'bg-amber-500/20 text-amber-300 neon-border-magenta'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              To Watch
+            </button>
+            <button
               onClick={() => setActiveTab('recommendations')}
               className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'recommendations'
@@ -229,7 +281,11 @@ function TVSeriesPageContent() {
         </AnimatePresence>
       </div>
 
-      <AddTVSeriesModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+      <AddTVSeriesModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        defaultStatus={activeTab === 'to_watch' ? 'to_watch' : 'watched'}
+      />
       <EditTVSeriesModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} series={editingSeries} />
 
       <FloatingCommandBar

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Star, Calendar, Trash2, Edit, Tv, Layers, List } from 'lucide-react';
+import { Star, Calendar, Trash2, Edit, Tv, Layers, List, Check, Eye } from 'lucide-react';
 import { useTVSeries } from '../../utils/TVSeriesContext';
 import { useState, useEffect } from 'react';
 import { getEffectiveGenreColors, subscribeUserPrefs } from '../../utils/userPrefs';
@@ -11,7 +11,8 @@ const getRatingColor = (rating) => {
   return 'text-red-400';
 };
 
-export default function SeriesCard({ series, onEdit }) {
+export default function SeriesCard({ series, onEdit, onMarkWatched }) {
+  const isToWatch = series.status === 'to_watch';
   const { deleteSeries } = useTVSeries();
   const [isDeleting, setIsDeleting] = useState(false);
   const [genreColors, setGenreColors] = useState(getEffectiveGenreColors);
@@ -46,6 +47,15 @@ export default function SeriesCard({ series, onEdit }) {
           <h3 className="text-lg sm:text-xl font-bold text-white line-clamp-2">{series.title}</h3>
         </div>
         <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+          {isToWatch && onMarkWatched && (
+            <button
+              onClick={() => onMarkWatched(series)}
+              className="p-2 sm:p-1.5 text-white/60 hover:text-amber-300 transition-colors"
+              title="Mark as Watched"
+            >
+              <Check size={18} />
+            </button>
+          )}
           <button
             onClick={() => onEdit(series)}
             className="p-2 sm:p-1.5 text-white/60 hover:text-neon-magenta transition-colors"
@@ -64,12 +74,20 @@ export default function SeriesCard({ series, onEdit }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`flex items-center gap-1 ${ratingClass}`}>
-          <Star size={16} fill="currentColor" />
-          <span className="font-bold">{series.rating}</span>
-          <span className="text-white/60 text-sm">/10</span>
-        </div>
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        {isToWatch ? (
+          <span className="px-2 py-1 text-xs rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1">
+            <Eye size={12} /> To Watch
+          </span>
+        ) : (
+          series.rating != null && (
+            <div className={`flex items-center gap-1 ${ratingClass}`}>
+              <Star size={16} fill="currentColor" />
+              <span className="font-bold">{series.rating}</span>
+              <span className="text-white/60 text-sm">/10</span>
+            </div>
+          )
+        )}
         {series.genre && (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80">
             {series.genre}
@@ -101,21 +119,23 @@ export default function SeriesCard({ series, onEdit }) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 text-white/60 text-sm mb-3">
-        <Calendar size={14} />
-        {series.date_watched ? (
-          <span>{(() => {
-            const [year, month, day] = series.date_watched.split('-');
-            return new Date(year, month - 1, day).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            });
-          })()}</span>
-        ) : (
-          <span>No date</span>
-        )}
-      </div>
+      {!isToWatch && (
+        <div className="flex items-center gap-2 text-white/60 text-sm mb-3">
+          <Calendar size={14} />
+          {series.date_watched ? (
+            <span>{(() => {
+              const [year, month, day] = series.date_watched.split('-');
+              return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              });
+            })()}</span>
+          ) : (
+            <span>No date</span>
+          )}
+        </div>
+      )}
 
       {series.notes && (
         <p className="text-white/70 text-sm line-clamp-2 mt-3 pt-3 border-t border-white/10">

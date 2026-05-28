@@ -36,9 +36,9 @@ export const TVSeriesProvider = ({ children }) => {
     }
   };
 
-  const addSeries = async (tvSeries) => {
+  const addSeries = async (tvSeries, defaultStatus = 'watched') => {
     try {
-      await tvApi.addSeries(tvSeries);
+      await tvApi.addSeries({ ...tvSeries, status: tvSeries.status || defaultStatus });
       await fetchSeries();
       await fetchAnalytics();
     } catch (err) {
@@ -54,6 +54,12 @@ export const TVSeriesProvider = ({ children }) => {
     } catch (err) {
       throw err;
     }
+  };
+
+  const updateSeriesStatus = async (id, status) => {
+    const s = series.find(x => x.id === id);
+    if (!s) return;
+    await updateSeries(id, { ...s, status });
   };
 
   const deleteSeries = async (id) => {
@@ -80,6 +86,7 @@ export const TVSeriesProvider = ({ children }) => {
       fetchSeries,
       addSeries,
       updateSeries,
+      updateSeriesStatus,
       deleteSeries,
     }}>
       {children}

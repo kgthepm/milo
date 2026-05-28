@@ -4,6 +4,9 @@ const http = require('http');
 
 // Build context string from user data
 function buildContext(movies = [], tvSeries = [], analytics = null) {
+  movies = movies.filter(m => (m.status || 'watched') === 'watched');
+  tvSeries = tvSeries.filter(t => (t.status || 'watched') === 'watched');
+
   let context = 'User viewing history:\n\n';
 
   if (movies.length > 0) {

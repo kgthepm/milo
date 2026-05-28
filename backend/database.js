@@ -17,7 +17,7 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS movies (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      rating REAL NOT NULL CHECK(rating >= 1 AND rating <= 10),
+      rating REAL CHECK(rating IS NULL OR (rating >= 1 AND rating <= 10)),
       genre TEXT,
       date_watched TEXT,
       notes TEXT,
@@ -26,6 +26,7 @@ function initializeDatabase() {
       type TEXT DEFAULT 'movie',
       num_seasons INTEGER,
       total_episodes INTEGER,
+      status TEXT NOT NULL DEFAULT 'watched',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
@@ -48,12 +49,15 @@ function migrateDatabase() {
     }
 
     const columnNames = columns.map(col => col.name);
-    const needsMigration = !columnNames.includes('director') || 
+    const ratingCol = columns.find(col => col.name === 'rating');
+    const needsMigration = !columnNames.includes('director') ||
                           columns.find(col => col.name === 'rating' && col.type === 'INTEGER') ||
                           !columnNames.includes('type') ||
                           !columnNames.includes('num_seasons') ||
                           !columnNames.includes('total_episodes') ||
-                          !columnNames.includes('release_year');
+                          !columnNames.includes('release_year') ||
+                          !columnNames.includes('status') ||
+                          (ratingCol && ratingCol.notnull === 1);
 
     const checkDateWatchedConstraint = (callback) => {
       db.run("INSERT INTO movies (title, rating, date_watched) VALUES ('_migration_test', 1, NULL)", function(err) {
@@ -88,7 +92,7 @@ function migrateDatabase() {
             CREATE TABLE movies_new (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               title TEXT NOT NULL,
-              rating REAL NOT NULL CHECK(rating >= 1 AND rating <= 10),
+              rating REAL CHECK(rating IS NULL OR (rating >= 1 AND rating <= 10)),
               genre TEXT,
               date_watched TEXT,
               notes TEXT,
@@ -97,6 +101,7 @@ function migrateDatabase() {
               type TEXT DEFAULT 'movie',
               num_seasons INTEGER,
               total_episodes INTEGER,
+              status TEXT NOT NULL DEFAULT 'watched',
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
           `, (err) => {
@@ -105,11 +110,14 @@ function migrateDatabase() {
               return;
             }
 
-            const targetCols = ['id', 'title', 'rating', 'genre', 'date_watched', 'notes', 'director', 'release_year', 'type', 'num_seasons', 'total_episodes', 'created_at'];
+            const targetCols = ['id', 'title', 'rating', 'genre', 'date_watched', 'notes', 'director', 'release_year', 'type', 'num_seasons', 'total_episodes', 'status', 'created_at'];
             const has = (c) => columnNames.includes(c);
             const sourceExpr = (col) => {
               if (col === 'type') {
                 return has('type') ? "COALESCE(type, 'movie')" : "'movie'";
+              }
+              if (col === 'status') {
+                return has('status') ? "COALESCE(status, 'watched')" : "'watched'";
               }
               if (['director', 'release_year', 'num_seasons', 'total_episodes'].includes(col)) {
                 return has(col) ? col : 'NULL';

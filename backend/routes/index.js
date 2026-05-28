@@ -74,7 +74,7 @@ router.get('/ollama/status', (req, res) => {
 });
 
 router.get('/movies', (req, res) => {
-  const { search, genre, minRating, maxRating, startDate, endDate, type, sortBy } = req.query;
+  const { search, genre, minRating, maxRating, startDate, endDate, type, status, sortBy } = req.query;
 
   let query = 'SELECT * FROM movies WHERE 1=1';
   const params = [];
@@ -82,6 +82,11 @@ router.get('/movies', (req, res) => {
   if (type) {
     query += ' AND type = ?';
     params.push(type);
+  }
+
+  if (status) {
+    query += ' AND status = ?';
+    params.push(status);
   }
 
   if (search) {
@@ -133,53 +138,90 @@ router.get('/movies', (req, res) => {
 });
 
 router.post('/movies', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, status } = req.body;
+  const resolvedStatus = status || 'watched';
+  const resolvedType = type || 'movie';
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
+  if (resolvedStatus === 'watched' && (rating === undefined || rating === null || rating === '')) {
+    res.status(400).json({ error: 'Rating is required for watched items' });
+    return;
+  }
+
+  if (rating !== undefined && rating !== null && rating !== '' && (rating < 1 || rating > 10)) {
     res.status(400).json({ error: 'Rating must be between 1 and 10' });
     return;
   }
 
-  const query = `
-    INSERT INTO movies (title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+  const ratingValue = (rating === undefined || rating === '' ? null : rating);
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, release_year, type || 'movie', num_seasons, total_episodes], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  db.get(
+    'SELECT id, status FROM movies WHERE title = ? AND type = ? LIMIT 1',
+    [title, resolvedType],
+    (dupErr, existing) => {
+      if (dupErr) {
+        res.status(500).json({ error: dupErr.message });
+        return;
+      }
+      if (existing && existing.status !== resolvedStatus) {
+        res.status(409).json({
+          error: 'Title already exists with a different status',
+          existingId: existing.id,
+          currentStatus: existing.status,
+          requestedStatus: resolvedStatus
+        });
+        return;
+      }
+
+      const query = `
+        INSERT INTO movies (title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      db.run(query, [title, ratingValue, genre, date_watched, notes, director, release_year, resolvedType, num_seasons, total_episodes, resolvedStatus], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.status(201).json({ id: this.lastID, title, rating: ratingValue, genre, date_watched, notes, director, release_year, type: resolvedType, num_seasons, total_episodes, status: resolvedStatus });
+      });
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, director, release_year, type: type || 'movie', num_seasons, total_episodes });
-  });
+  );
 });
 
 router.put('/movies/:id', (req, res) => {
-  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes } = req.body;
+  const { title, rating, genre, date_watched, notes, director, release_year, type, num_seasons, total_episodes, status } = req.body;
   const { id } = req.params;
+  const resolvedStatus = status || 'watched';
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
+  if (resolvedStatus === 'watched' && (rating === undefined || rating === null || rating === '')) {
+    res.status(400).json({ error: 'Rating is required for watched items' });
+    return;
+  }
+
+  if (rating !== undefined && rating !== null && rating !== '' && (rating < 1 || rating > 10)) {
     res.status(400).json({ error: 'Rating must be between 1 and 10' });
     return;
   }
 
+  const ratingValue = (rating === undefined || rating === '' ? null : rating);
+
   const query = `
     UPDATE movies
-    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, release_year = ?, type = ?, num_seasons = ?, total_episodes = ?
+    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, director = ?, release_year = ?, type = ?, num_seasons = ?, total_episodes = ?, status = ?
     WHERE id = ?
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, director, release_year, type || 'movie', num_seasons, total_episodes, id], function(err) {
+  db.run(query, [title, ratingValue, genre, date_watched, notes, director, release_year, type || 'movie', num_seasons, total_episodes, resolvedStatus, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -188,7 +230,7 @@ router.put('/movies/:id', (req, res) => {
       res.status(404).json({ error: 'Movie not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, director, release_year, type: type || 'movie', num_seasons, total_episodes });
+    res.json({ id, title, rating: ratingValue, genre, date_watched, notes, director, release_year, type: type || 'movie', num_seasons, total_episodes, status: resolvedStatus });
   });
 });
 
@@ -211,10 +253,15 @@ router.delete('/movies/:id', (req, res) => {
 });
 
 router.get('/tv', (req, res) => {
-  const { search, genre, minRating, maxRating, startDate, endDate, sortBy } = req.query;
+  const { search, genre, minRating, maxRating, startDate, endDate, status, sortBy } = req.query;
 
   let query = 'SELECT * FROM movies WHERE type = ?';
   const params = ['tv'];
+
+  if (status) {
+    query += ' AND status = ?';
+    params.push(status);
+  }
 
   if (search) {
     query += ' AND (title LIKE ? OR notes LIKE ?)';
@@ -266,10 +313,10 @@ router.get('/tv', (req, res) => {
 
 router.get('/tv/analytics', (req, res) => {
   const queries = [
-    'SELECT COUNT(*) as total FROM movies WHERE type = ?',
-    'SELECT AVG(rating) as avg_rating FROM movies WHERE type = ?',
-    'SELECT genre, COUNT(*) as count FROM movies WHERE type = ? AND genre IS NOT NULL GROUP BY genre ORDER BY count DESC',
-    "SELECT date_watched, COUNT(*) as count FROM movies WHERE type = ? AND date_watched IS NOT NULL GROUP BY date_watched ORDER BY date_watched DESC"
+    "SELECT COUNT(*) as total FROM movies WHERE type = ? AND status = 'watched'",
+    "SELECT AVG(rating) as avg_rating FROM movies WHERE type = ? AND status = 'watched'",
+    "SELECT genre, COUNT(*) as count FROM movies WHERE type = ? AND status = 'watched' AND genre IS NOT NULL GROUP BY genre ORDER BY count DESC",
+    "SELECT date_watched, COUNT(*) as count FROM movies WHERE type = ? AND status = 'watched' AND date_watched IS NOT NULL GROUP BY date_watched ORDER BY date_watched DESC"
   ];
 
   Promise.all(queries.map(q => new Promise((resolve, reject) => {
@@ -296,53 +343,89 @@ router.get('/tv/analytics', (req, res) => {
 });
 
 router.post('/tv', (req, res) => {
-  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year } = req.body;
+  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year, status } = req.body;
+  const resolvedStatus = status || 'watched';
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
+  if (resolvedStatus === 'watched' && (rating === undefined || rating === null || rating === '')) {
+    res.status(400).json({ error: 'Rating is required for watched items' });
+    return;
+  }
+
+  if (rating !== undefined && rating !== null && rating !== '' && (rating < 1 || rating > 10)) {
     res.status(400).json({ error: 'Rating must be between 1 and 10' });
     return;
   }
 
-  const query = `
-    INSERT INTO movies (title, rating, genre, date_watched, notes, type, num_seasons, total_episodes, release_year)
-    VALUES (?, ?, ?, ?, ?, 'tv', ?, ?, ?)
-  `;
+  const ratingValue = (rating === undefined || rating === '' ? null : rating);
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+  db.get(
+    "SELECT id, status FROM movies WHERE title = ? AND type = 'tv' LIMIT 1",
+    [title],
+    (dupErr, existing) => {
+      if (dupErr) {
+        res.status(500).json({ error: dupErr.message });
+        return;
+      }
+      if (existing && existing.status !== resolvedStatus) {
+        res.status(409).json({
+          error: 'Title already exists with a different status',
+          existingId: existing.id,
+          currentStatus: existing.status,
+          requestedStatus: resolvedStatus
+        });
+        return;
+      }
+
+      const query = `
+        INSERT INTO movies (title, rating, genre, date_watched, notes, type, num_seasons, total_episodes, release_year, status)
+        VALUES (?, ?, ?, ?, ?, 'tv', ?, ?, ?, ?)
+      `;
+
+      db.run(query, [title, ratingValue, genre, date_watched, notes, num_seasons, total_episodes, release_year, resolvedStatus], function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.status(201).json({ id: this.lastID, title, rating: ratingValue, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year, status: resolvedStatus });
+      });
     }
-    res.status(201).json({ id: this.lastID, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year });
-  });
+  );
 });
 
 router.put('/tv/:id', (req, res) => {
-  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year } = req.body;
+  const { title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year, status } = req.body;
   const { id } = req.params;
+  const resolvedStatus = status || 'watched';
 
-  if (!title || !rating) {
-    res.status(400).json({ error: 'Title and rating are required' });
+  if (!title) {
+    res.status(400).json({ error: 'Title is required' });
     return;
   }
 
-  if (rating < 1 || rating > 10) {
+  if (resolvedStatus === 'watched' && (rating === undefined || rating === null || rating === '')) {
+    res.status(400).json({ error: 'Rating is required for watched items' });
+    return;
+  }
+
+  if (rating !== undefined && rating !== null && rating !== '' && (rating < 1 || rating > 10)) {
     res.status(400).json({ error: 'Rating must be between 1 and 10' });
     return;
   }
 
+  const ratingValue = (rating === undefined || rating === '' ? null : rating);
+
   const query = `
     UPDATE movies
-    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, type = 'tv', num_seasons = ?, total_episodes = ?, release_year = ?
+    SET title = ?, rating = ?, genre = ?, date_watched = ?, notes = ?, type = 'tv', num_seasons = ?, total_episodes = ?, release_year = ?, status = ?
     WHERE id = ? AND type = 'tv'
   `;
 
-  db.run(query, [title, rating, genre, date_watched, notes, num_seasons, total_episodes, release_year, id], function(err) {
+  db.run(query, [title, ratingValue, genre, date_watched, notes, num_seasons, total_episodes, release_year, resolvedStatus, id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -351,7 +434,7 @@ router.put('/tv/:id', (req, res) => {
       res.status(404).json({ error: 'TV series not found' });
       return;
     }
-    res.json({ id, title, rating, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year });
+    res.json({ id, title, rating: ratingValue, genre, date_watched, notes, type: 'tv', num_seasons, total_episodes, release_year, status: resolvedStatus });
   });
 });
 
@@ -381,7 +464,7 @@ router.get('/recommendations', async (req, res) => {
     const contentTypes = content === 'all' ? ['movie', 'tv'] : [content];
     const recommendationTypes = type === 'all' ? ['similar', 'hidden_gems'] : [type];
 
-    const query = `SELECT * FROM movies WHERE type IN (${contentTypes.map(() => '?').join(',')})`;
+    const query = `SELECT * FROM movies WHERE type IN (${contentTypes.map(() => '?').join(',')}) AND status = 'watched'`;
     const params = contentTypes;
 
     // Wrap db.all in a promise
@@ -473,20 +556,18 @@ router.post('/assistant/chat', async (req, res) => {
 
 router.get('/analytics', (req, res) => {
   const { type } = req.query;
-  const typeCondition = type ? 'WHERE type = ?' : '';
+  const baseWhere = type ? "WHERE type = ? AND status = 'watched'" : "WHERE status = 'watched'";
   const typeParams = type ? [type] : [];
-  
+
   const queries = [
-    `SELECT COUNT(*) as total FROM movies ${typeCondition}`,
-    `SELECT AVG(rating) as avg_rating FROM movies ${typeCondition}`,
-    `SELECT genre, COUNT(*) as count FROM movies ${typeCondition ? typeCondition + ' AND' : 'WHERE'} genre IS NOT NULL GROUP BY genre ORDER BY count DESC`,
-    type 
-      ? `SELECT date_watched, COUNT(*) as count FROM movies ${typeCondition} AND date_watched IS NOT NULL GROUP BY date_watched ORDER BY date_watched DESC`
-      : `SELECT date_watched, COUNT(*) as count FROM movies GROUP BY date_watched ORDER BY date_watched DESC`
+    `SELECT COUNT(*) as total FROM movies ${baseWhere}`,
+    `SELECT AVG(rating) as avg_rating FROM movies ${baseWhere}`,
+    `SELECT genre, COUNT(*) as count FROM movies ${baseWhere} AND genre IS NOT NULL GROUP BY genre ORDER BY count DESC`,
+    `SELECT date_watched, COUNT(*) as count FROM movies ${baseWhere} AND date_watched IS NOT NULL GROUP BY date_watched ORDER BY date_watched DESC`
   ];
 
-  Promise.all(queries.map((q, i) => new Promise((resolve, reject) => {
-    const params = i < 2 ? typeParams : (i === 2 && type ? [...typeParams] : []);
+  Promise.all(queries.map((q) => new Promise((resolve, reject) => {
+    const params = typeParams;
     db.all(q, params, (err, rows) => {
       if (err) reject(err);
       else resolve(rows);

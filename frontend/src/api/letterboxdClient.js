@@ -69,6 +69,7 @@ export function processLetterboxdRows(csvData, existingTitles = new Set()) {
       rating: rating * 2,
       date_watched: Date || null,
       type: 'movie',
+      status: 'watched',
       notes: '',
       genre: '',
       director: '',

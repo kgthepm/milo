@@ -18,6 +18,9 @@ function MoviesPageContent() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
+
+  const watchedMovies = movies.filter(m => (m.status || 'watched') === 'watched');
+  const toWatchMovies = movies.filter(m => m.status === 'to_watch');
   const [filterParams, setFilterParams] = useState({ sortBy: 'most_recent' });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
@@ -79,6 +82,11 @@ function MoviesPageContent() {
     setShowEditModal(true);
   };
 
+  const handleMarkWatched = (movie) => {
+    setEditingMovie({ ...movie, status: 'watched' });
+    setShowEditModal(true);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'movies':
@@ -106,7 +114,7 @@ function MoviesPageContent() {
               <div className="text-center py-12 text-red-400">
                 <p>{error}</p>
               </div>
-            ) : movies.length === 0 ? (
+            ) : watchedMovies.length === 0 ? (
               <div className="text-center py-12 text-white/50">
                 <Film size={48} className="mx-auto mb-4 opacity-50" />
                 <p className="text-lg">No movies found</p>
@@ -115,7 +123,7 @@ function MoviesPageContent() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <AnimatePresence>
-                  {movies.map((movie, index) => (
+                  {watchedMovies.map((movie) => (
                     <MovieCard key={movie.id} movie={movie} onEdit={handleEdit} />
                   ))}
                 </AnimatePresence>
@@ -124,8 +132,36 @@ function MoviesPageContent() {
           </div>
         );
 
+      case 'to_watch':
+        return (
+          <div className="space-y-6">
+            {toWatchMovies.length === 0 ? (
+              <div className="text-center py-12 text-white/50">
+                <Film size={48} className="mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Your watchlist is empty</p>
+                <p className="text-sm">Add a movie you want to watch to get started!</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {[...toWatchMovies]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .map((movie) => (
+                      <MovieCard
+                        key={movie.id}
+                        movie={movie}
+                        onEdit={handleEdit}
+                        onMarkWatched={handleMarkWatched}
+                      />
+                    ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        );
+
       case 'timeline':
-        return <Timeline movies={movies} />;
+        return <Timeline movies={watchedMovies} />;
 
       case 'recommendations':
         return (
@@ -195,6 +231,16 @@ function MoviesPageContent() {
               Movies
             </button>
             <button
+              onClick={() => setActiveTab('to_watch')}
+              className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
+                activeTab === 'to_watch'
+                  ? 'bg-amber-500/20 text-amber-300 neon-border-cyan'
+                  : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              To Watch
+            </button>
+            <button
               onClick={() => setActiveTab('timeline')}
               className={`flex-1 px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${
                 activeTab === 'timeline'
@@ -230,7 +276,11 @@ function MoviesPageContent() {
         </AnimatePresence>
       </div>
 
-      <AddMovieModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+      <AddMovieModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        defaultStatus={activeTab === 'to_watch' ? 'to_watch' : 'watched'}
+      />
       <EditMovieModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} movie={editingMovie} />
 
       <FloatingCommandBar

@@ -14,7 +14,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(movie),
     });
-    if (!response.ok) throw new Error('Failed to add movie');
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      const err = new Error(data.error || 'Failed to add movie');
+      err.status = response.status;
+      err.data = data;
+      throw err;
+    }
     return response.json();
   },
 

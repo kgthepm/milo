@@ -17,7 +17,13 @@ export const tvApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...series, type: 'tv' }),
     });
-    if (!response.ok) throw new Error('Failed to add TV series');
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      const err = new Error(data.error || 'Failed to add TV series');
+      err.status = response.status;
+      err.data = data;
+      throw err;
+    }
     return response.json();
   },
 
