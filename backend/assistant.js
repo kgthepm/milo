@@ -45,8 +45,19 @@ function buildContext(movies = [], tvSeries = [], analytics = null) {
   return context;
 }
 
+// Format conversation history into a transcript block
+function formatHistory(history = []) {
+  if (!Array.isArray(history) || history.length === 0) return '';
+  const recent = history.slice(-20);
+  const lines = recent
+    .filter((m) => m && m.content && (m.role === 'user' || m.role === 'assistant'))
+    .map((m) => `${m.role === 'user' ? 'User' : 'MILO'}: ${m.content}`);
+  if (lines.length === 0) return '';
+  return `Previous conversation:\n${lines.join('\n')}\n\n`;
+}
+
 // Build prompt for MILO
-function buildPrompt(userMessage, context) {
+function buildPrompt(userMessage, context, history = []) {
   const systemPrompt = `You are MILO (Movie Intelligence & Learning Overseer), a sophisticated AI assistant for Cine-metric, a personal movie and TV tracking application.
 
 Your personality:
@@ -72,7 +83,12 @@ Guidelines:
 Context about the user:
 ${context}`;
 
-  return { systemPrompt, userPrompt: userMessage };
+  const transcript = formatHistory(history);
+  const userPrompt = transcript
+    ? `${transcript}Current message: ${userMessage}`
+    : userMessage;
+
+  return { systemPrompt, userPrompt };
 }
 
 // Call Ollama API
@@ -144,7 +160,7 @@ async function callOllama(prompt, systemPrompt, model) {
 }
 
 // Generate response from MILO
-async function generateResponse(message, movies, tvSeries, analytics, model) {
+async function generateResponse(message, movies, tvSeries, analytics, model, history = []) {
   const resolvedModel = model || process.env.OLLAMA_MODEL;
   if (!resolvedModel) {
     throw new Error('No model specified. Pick one from the dropdown.');
@@ -152,7 +168,7 @@ async function generateResponse(message, movies, tvSeries, analytics, model) {
 
   try {
     const context = buildContext(movies, tvSeries, analytics);
-    const { systemPrompt, userPrompt } = buildPrompt(message, context);
+    const { systemPrompt, userPrompt } = buildPrompt(message, context, history);
     const response = await callOllama(userPrompt, systemPrompt, resolvedModel);
 
     return { response, modelUsed: resolvedModel };

@@ -89,7 +89,7 @@ For each, explain why it's a hidden gem that fits my taste perfectly.`;
   return { systemPrompt, userPrompt };
 }
 
-export function buildAssistantPrompt(userMessage, movies = [], tvSeries = [], analytics = null) {
+export function buildAssistantPrompt(userMessage, movies = [], tvSeries = [], analytics = null, history = []) {
   let context = 'User viewing history:\n\n';
 
   if (movies.length > 0) {
@@ -145,7 +145,15 @@ Guidelines:
 Context about the user:
 ${context}`;
 
-  return { systemPrompt, userPrompt: userMessage };
+  const recent = Array.isArray(history) ? history.slice(-20) : [];
+  const transcriptLines = recent
+    .filter((m) => m && m.content && (m.role === 'user' || m.role === 'assistant'))
+    .map((m) => `${m.role === 'user' ? 'User' : 'MILO'}: ${m.content}`);
+  const userPrompt = transcriptLines.length
+    ? `Previous conversation:\n${transcriptLines.join('\n')}\n\nCurrent message: ${userMessage}`
+    : userMessage;
+
+  return { systemPrompt, userPrompt };
 }
 
 export function parseRecommendationsJSON(text) {

@@ -539,14 +539,14 @@ router.get('/recommendations', async (req, res) => {
 });
 
 router.post('/assistant/chat', async (req, res) => {
-  const { message, model, movies, tvSeries, analytics } = req.body;
+  const { message, model, movies, tvSeries, analytics, history } = req.body;
 
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Message is required' });
   }
 
   try {
-    const result = await assistant.generateResponse(message, movies || [], tvSeries || [], analytics || null, model);
+    const result = await assistant.generateResponse(message, movies || [], tvSeries || [], analytics || null, model, history || []);
     res.json(result);
   } catch (error) {
     console.error('MILO assistant error:', error.message);

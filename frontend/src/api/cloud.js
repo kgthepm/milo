@@ -268,11 +268,11 @@ export const tvApi = {
 };
 
 export const assistantApi = {
-  async chatWithAssistant(message, model = null, movies = [], tvSeries = [], analytics = null) {
+  async chatWithAssistant(message, model = null, movies = [], tvSeries = [], analytics = null, history = []) {
     const { chatAssistant } = await import('../ai');
     const settings = loadAISettings();
     if (model) settings.model = model;
-    return chatAssistant({ message, movies, tvSeries, analytics, settings });
+    return chatAssistant({ message, movies, tvSeries, analytics, history, settings });
   },
   async getOllamaModels() {
     return movieApi.getOllamaModels();

@@ -69,10 +69,11 @@ export async function chatAssistant({
   movies = [],
   tvSeries = [],
   analytics = null,
+  history = [],
   settings = loadAISettings(),
   signal,
 } = {}) {
-  const { systemPrompt, userPrompt } = buildAssistantPrompt(message, movies, tvSeries, analytics);
+  const { systemPrompt, userPrompt } = buildAssistantPrompt(message, movies, tvSeries, analytics, history);
   const provider = getProvider(settings.provider);
   const response = await provider.chatAssistant({
     systemPrompt,
