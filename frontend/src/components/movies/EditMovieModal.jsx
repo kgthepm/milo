@@ -17,6 +17,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
     director: movie?.director || '',
     release_year: movie?.release_year || '',
     is_public: movie?.is_public !== false,
+    status: movie?.status || 'watched',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,6 +32,7 @@ export default function EditMovieModal({ isOpen, onClose, movie }) {
         director: movie.director || '',
         release_year: movie.release_year || '',
         is_public: movie.is_public !== false,
+        status: movie.status || 'watched',
       });
     }
   }, [movie]);

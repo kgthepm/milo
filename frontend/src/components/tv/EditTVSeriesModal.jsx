@@ -18,6 +18,7 @@ export default function EditTVSeriesModal({ isOpen, onClose, series }) {
     total_episodes: series?.total_episodes || '',
     release_year: series?.release_year || '',
     is_public: series?.is_public !== false,
+    status: series?.status || 'watched',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,6 +34,7 @@ export default function EditTVSeriesModal({ isOpen, onClose, series }) {
         total_episodes: series.total_episodes || '',
         release_year: series.release_year || '',
         is_public: series.is_public !== false,
+        status: series.status || 'watched',
       });
     }
   }, [series]);
